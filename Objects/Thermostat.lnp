@@ -1,0 +1,19 @@
+".\Objects\app.obj",
+".\Objects\STARTUP.obj",
+".\Objects\bsp.obj",
+".\Objects\bsp_buzzer.obj",
+".\Objects\bsp_eeprom.obj",
+".\Objects\bsp_kbd.obj",
+".\Objects\bsp_power.obj",
+".\Objects\bsp_seg.obj",
+".\Objects\bsp_uart.obj",
+".\Objects\bsp_welder.obj",
+".\Objects\lib_delay.obj",
+".\Objects\lib_math.obj",
+".\Objects\lib_mem.obj",
+".\Objects\lib_str.obj",
+".\Objects\os.obj",
+".\Objects\os_timer.obj" 
+TO ".\Objects\Thermostat" 
+
+PRINT(".\Listings\Thermostat.map") REMOVEUNUSED 

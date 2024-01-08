@@ -34,7 +34,7 @@
 *.app
 *.i*86
 *.x86_64
-*.hex
+# *.hex
 
 # Debug files
 *.dSYM/
@@ -50,3 +50,15 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# vscode
+.vscode/
+
+## Keil5
+# Listings
+*.lst
+*.m51
+# Objects
+*.build_log.htm
+*.__i
+
