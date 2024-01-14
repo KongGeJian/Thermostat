@@ -16,11 +16,11 @@
 
 /*
 *********************************************************************************************************
-* Description: 最大最小值
+* Description : 最大最小值
 *
-* Arguments  : none.
+* Arguments   : none.
 * 
-* Return     : 
+* Return      : -
 *********************************************************************************************************
 */
 
@@ -42,6 +42,43 @@ s16 math_imax(s16 a, s16 b) compact reentrant
 u16 math_uimax(u16 a, u16 b) compact reentrant
 {
     return a > b ? a : b;
+}
+
+/*
+*********************************************************************************************************
+* Description : 滤波算法
+*
+* Arguments   : samples - 样本数据
+*               len - 样本数据长度
+* 
+* Return      : 滤波后的计算值
+*
+* Note(s)     : 注意数据大小，别溢出
+*********************************************************************************************************
+*/
+//滤波算法：中位值平均
+u16 math_filter_median_average(u16 xdata samples[], u8 len) compact reentrant
+{
+    u32 sum = 0;
+    u8 i, j;
+
+    //排序，冒泡排序
+    for (i = 0; i < len - 1; i++)
+    {
+        for (j = 0; j < len - 1 - i; j++)
+        {
+            if (samples[j] > samples[j + 1])
+            {
+                samples[j] = samples[j] ^ samples[j + 1];
+                samples[j + 1] = samples[j] ^ samples[j + 1];
+                samples[j] = samples[j] ^ samples[j + 1];
+            }
+        }
+    }
+    //去掉2个最小值和2个最大值，中间值求平均值
+    for (i = 2; i < len - 2; i++)
+        sum += samples[i];
+    return sum / (len - 4);
 }
 
 /***********************************************END*****************************************************/

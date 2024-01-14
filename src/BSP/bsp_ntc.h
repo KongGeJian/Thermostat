@@ -1,59 +1,65 @@
-
 /*
 *********************************************************************************************************
 *                                        BOARD SUPPORT PACKAGE
 *
-* Name    : bsp.h
+* Name    : NTC温度传感器
 * Version : V1.0
 * Author  : 空格键
-* ----------------------------
-* Note(s) : (1) 这里是BSP预处理总头文件
 *********************************************************************************************************
 */
 
-#ifndef __BSP_H__
-#define __BSP_H__
+#ifndef __BSP_NTC_H__
+#define __BSP_NTC_H__
 
 /*
 *********************************************************************************************************
-*                                              INCLUDE FILES
+*                                             INCLUDE FILES
 *********************************************************************************************************
 */
 
-#include "cfg.h"
+#include "bsp.h"
 
-#include "lib_stdint.h"
-#include "lib_delay.h"
-#include "lib_mem.h"
-// #include "lib_str.h"
-#include "lib_math.h"
-
+#include <MATH.H>
 
 
 /*
 *********************************************************************************************************
-*                                        INCLUDE FILES - Sub module
+*                                               DEFINE
 *********************************************************************************************************
 */
 
-#include "bsp_uart.h"
-#include "bsp_seg.h"
-#include "bsp_kbd.h"
-#include "bsp_buzzer.h"
-#include "bsp_eeprom.h"
-#include "bsp_ntc.h"
-#include "bsp_relay.h"
+//ADC通道
+typedef enum MENU_ADC_CH
+{
+    CH_0 = 0,
+    CH_1,
+    CH_2,
+    CH_3,
+    CH_4,
+    CH_5,
+    CH_6,
+    CH_7,
+    CH_8,
+    CH_9,
+    CH_10,
+    CH_11,
+    CH_12,
+    CH_13,
+    CH_14,
+    CH_15,  
+} MENU_ADC_CH_TYP;
 
 
 
 /*
 *********************************************************************************************************
-*                                              FUNCTION
+*                                             FUNCTION
 *********************************************************************************************************
 */
 
-extern void  BSP_Init(void) large;
+extern void BSP_NTC_Init(void) large;
 
+extern s16  BSP_NTC_GetTemp() large;
 
 
 #endif
