@@ -6,10 +6,10 @@
 * Version : V1.0
 * Author  : 空格键
 * ----------------------------
-* Note(s) : STM8G1K17 EEPROM 大小、扇区、起始地址、结束地址 需要用户自定义
+* Note(s) : STM8G1K08 EEPROM 大小、扇区、起始地址、结束地址 需要用户自定义
 *             ----------------------------------------------------------------
 *             大小  扇区  起始地址  结束地址
-*             1K    2    0000h    03FFh
+*             4K    8    0000h    0FFFh
 *             ----------------------------------------------------------------
 *             第一扇区：0000h - 01FFh
 *             第二扇区：0200h - 03FFh
@@ -173,25 +173,29 @@ void BSP_EEPROM_EraseSector(word addr) compact
 *********************************************************************************************************
 * Description : 从*eep_params写配置参数到eep中
 *
-* Argument(s) : *eep_params - 配置参数指针，数组格式
-*               len - 参数数组长度
+* Argument(s) : *eep_params - 配置参数指针，通用无类型指针
+*               len - 参数占用字节长度
 *
 * Return(s)   : true-成功，false-失败
 *
-* Note(s)     : none.
+* Note(s)     : 这里限制在一个扇区，len长度不要超过500.
 *********************************************************************************************************
 */
-boolean BSP_EEPROM_Write_Params(u8 *eep_params, u8 len) large
+boolean BSP_EEPROM_Write_Params(void *eep_params, u16 len) large
 {
-    u8 i;
+    u16 i;
+    byte *eep_p = (byte *)eep_params;
     word addr = IAP_ADDR_SECTOR_1;
+
+    if (len > 500)
+        return false;
 
     BSP_EEPROM_EraseSector(addr);           //擦扇区
     BSP_EEPROM_WriteByte(addr, VERSION_SECTOR_1);   //第一个字节为版本标识
     addr++;
 
     for (i = 0; i < len; i++)
-        BSP_EEPROM_WriteByte(addr++, *eep_params++);
+        BSP_EEPROM_WriteByte(addr++, *eep_p++);
 
     return true;
 }
@@ -200,22 +204,26 @@ boolean BSP_EEPROM_Write_Params(u8 *eep_params, u8 len) large
 *********************************************************************************************************
 * Description : 从eep中读配置参数到*eep_params中
 *
-* Argument(s) : *eep_params - 配置参数指针，数组格式
-*               len - 参数数组长度
+* Argument(s) : *eep_params - 配置参数指针，通用无类型指针
+*               len - 参数占用字节长度
 *
 * Return(s)   : true-成功，false-失败
 *
-* Note(s)     : none.
+* Note(s)     : 这里限制在一个扇区，len长度不要超过500.
 *********************************************************************************************************
 */
-boolean BSP_EEPROM_Read_Params(u8 *eep_params, u8 len) large
+boolean BSP_EEPROM_Read_Params(void *eep_params, u16 len) large
 {
     u8 i;
     word addr = IAP_ADDR_SECTOR_1;
-    if (BSP_EEPROM_ReadByte(addr) != VERSION_SECTOR_1)  //第一个字节为版本标识
+    
+    if (len > 500)
         return false;
 
+    if (BSP_EEPROM_ReadByte(addr) != VERSION_SECTOR_1)  //第一个字节为版本标识
+        return false;
     addr++;
+
     for (i = 0; i < len; i++)
         *eep_params++ = BSP_EEPROM_ReadByte(addr++);
 

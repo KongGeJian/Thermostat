@@ -17,70 +17,98 @@
 
 /*
 ********************************************************************************
-* Description: 操控结构体
-*
-* Note(s)    : none
+* Description: 菜单定义
 ********************************************************************************
 */
 
-//菜单
+//菜单: 模式
 typedef enum MENU_E
 {
-    M_A,    //自动挡
-    M_H,    //手动挡
-    M_U,    //电压
-    M_L,    //日志
-    M_R,    //重置
+    M_RUN,  //运行模式
+    M_SET,  //设置模式
     NR_M,   //结尾
 } MENU_E_TYP;
-//子菜单：A
-typedef enum MENU_A_E
+
+//子菜单: M_RUN
+typedef enum MENU_RUN_E
 {
-    M_A_0,
-    M_A_1,  //档位
-    NR_M_A, //结尾
-} MENU_A_E_TYP;
-//子菜单：H
-typedef enum MENU_H_E
+    M_RUN_MEASURE,  //测量
+    M_RUN_SETTING,  //设定 
+    NR_M_RUN,
+} MENU_RUN_E_TYP;
+
+//子菜单: M_SET_P1
+#define M_RUN_SETTING_DEFAULT  28
+
+//子菜单: M_SET
+typedef enum MENU_SET_E
 {
-    M_H_0,
-    M_H_1,  //正脉宽
-    M_H_2,  //负脉宽
-    M_H_3,  //脉冲次数
-    NR_M_H, //结尾
-} MENU_H_E_TYP;
-//子菜单：U
-typedef enum MENU_U_E
+    M_SET_P0,    //P0-P9
+    M_SET_P1,
+    M_SET_P2,
+    M_SET_P3,
+    M_SET_P4,
+    M_SET_P5,
+    M_SET_P6,
+    M_SET_P7,
+    M_SET_P8,
+    M_SET_P9,
+    NR_M_SET,
+} MENU_SET_E_TYP;
+
+//子菜单: M_SET_P0
+typedef enum MENU_SET_P0_E
 {
-    M_U_0,
-    M_U_1,  //电压
-    NR_M_U, //结尾
-} MENU_U_E_TYP;
-//子菜单：L
-typedef enum MENU_L_E
-{
-    M_L_0,
-    M_L_1,  //日志
-    NR_M_L, //结尾
-} MENU_L_E_TYP;
-//子菜单：├
-typedef enum MENU_R_E
-{
-    M_R_0,
-    M_R_1,  //重置
-    NR_M_R, //结尾
-} MENU_R_E_TYP;
+    M_SET_P0_C, //制冷
+    M_SET_P0_H, //制热
+    NR_M_SET_P0,
+} MENU_SET_P0_E_TYP;
+
+//子菜单: M_SET_P1
+#define M_SET_P1_DEFAULT 1
+#define M_SET_P1_MIN  1
+#define M_SET_P1_MAX  150
+
+//子菜单: M_SET_P2
+#define M_SET_P2_DEFAULT  250
+#define M_SET_P2_MAX  300
+
+//子菜单: M_SET_P3
+#define M_SET_P3_DEFAULT  -20
+#define M_SET_P3_MIN  -40
+
+//子菜单: M_SET_P4
+#define M_SET_P4_DEFAULT  0
+#define M_SET_P4_MIN  0
+#define M_SET_P4_MAX  30
+
+//子菜单: M_SET_P5
+#define M_SET_P5_DEFAULT  0
+#define M_SET_P5_MIN  -99
+#define M_SET_P5_MAX  99
+
+//子菜单: M_SET_P6
+#define M_SET_P6_OFF  -1
+#define M_SET_P6_MIN  0
+#define M_SET_P6_MAX  110
 
 //控制
 typedef struct CTR
 {
-    MENU_E_TYP menu;    //菜单
-    u8 sub_menu;        //子菜单
-    u8 auto_gear;       //自动-档位
-    PD_TYP hand_pd;     //手动-脉冲驱动
-    u16 weld_count;     //日志-焊接计数
-    float voltage;      //电压
-    u8 reset;           //重置标识
+    MENU_E_TYP menu;         // 菜单
+    MENU_RUN_E_TYP runMenu;  // 菜单
+    MENU_SET_E_TYP setMenu;  // 菜单
+    s16 targetTemp;          // 设定目标温度
+    MENU_SET_P0_E_TYP setP0; // P0
+    u8 setP1;                // P1，精度0.1，真实值 ÷10
+    s16 setP2;               // P2
+    s8 setP3;                // P3
+    u8 setP4;                // P4
+    s8 setP5;                // P5, 精度0.1，真实值 ÷10
+    s8 setP6;                // P6
+    u8 setP7;                // P7，预留
+    u8 setP8;                // P8，预留
+    boolean setP9;           // 重置标识
 } CTR_TYP;
 
 

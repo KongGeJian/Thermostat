@@ -25,17 +25,7 @@
 
 CTR_TYP idata ctr; //控制
 
-//eep保存参数
-#define EEP_PARAMS_LEN 7
-u8 xdata eep_params[EEP_PARAMS_LEN] = {
-    M_A,            //ctr.menu
-    0,              //ctr.sub_menu
-    PD_GEAR_MIN,    //ctr.auto_gear
-    PD_P_WIDTH_MIN, //ctr.hand_pd.pwidth
-    PD_N_WIDTH_MIN, //ctr.hand_pd.nwidth
-    PD_NUM_MIN,     //ctr.hand_pd.num
-    0,              //ctr.weld_count
-};
+CTR_TYP xdata eep_param; //eep保存参数
 
 //睡眠计时
 #define SLEEP_TIME 60   //60s
@@ -52,45 +42,46 @@ volatile bit data flag_sleep = false;       //保存参数标识
 *******************************************************************************
 */
 
-//获取pd
-PD_TYP * getPd() compact
-{
-    if (ctr.menu == M_A)
-        return &PD_GEAR[ctr.auto_gear];
-    else if (ctr.menu == M_H)
-        return &ctr.hand_pd;
-    return &PD_GEAR[0];
-}
-
 //默认值
 void defaultVariable() compact
 {
-    ctr.auto_gear = PD_GEAR_MIN;
-    ctr.hand_pd.pwidth = PD_P_WIDTH_MIN;
-    ctr.hand_pd.nwidth = PD_N_WIDTH_MIN;
-    ctr.hand_pd.num = PD_NUM_MIN;
-    ctr.weld_count = 0;
+    ctr.targetTemp = M_RUN_SETTING_DEFAULT;
+    ctr.setP0 = M_SET_P0_C;
+    ctr.setP1 = M_SET_P1_DEFAULT;
+    ctr.setP2 = M_SET_P2_DEFAULT;
+    ctr.setP3 = M_SET_P3_DEFAULT;
+    ctr.setP4 = M_SET_P4_DEFAULT;
+    ctr.setP5 = M_SET_P5_DEFAULT;
+    ctr.setP6 = M_SET_P6_OFF;
+    ctr.setP7 = 0;
+    ctr.setP8 = 0;
+    ctr.setP9 = false;
 }
 
 //初始化变量
 void initVariable() compact
 {
-    ctr.menu = M_A;
-    ctr.sub_menu = 0;
+    u16 len;
+
+    ctr.menu = M_RUN;
+    ctr.runMenu = M_RUN_MEASURE;
+    ctr.setMenu = M_SET_P0;
     defaultVariable();
-    ctr.voltage = 0.0;
-    ctr.reset = 0;
 
     //从EEP初始化配置
-    if (BSP_EEPROM_Read_Params(eep_params, EEP_PARAMS_LEN))
+    len = sizeof(eep_param);
+    if (BSP_EEPROM_Read_Params(&eep_param, len))
     {
-        ctr.menu = eep_params[0];
-        ctr.sub_menu = eep_params[1];
-        ctr.auto_gear = eep_params[2];
-        ctr.hand_pd.pwidth = eep_params[3];
-        ctr.hand_pd.nwidth = eep_params[4];
-        ctr.hand_pd.num = eep_params[5];
-        ctr.weld_count = eep_params[6];
+        ctr.targetTemp = eep_param.targetTemp;
+        ctr.setP0 = eep_param.setP0;
+        ctr.setP1 = eep_param.setP1; 
+        ctr.setP2 = eep_param.setP2; 
+        ctr.setP3 = eep_param.setP3; 
+        ctr.setP4 = eep_param.setP4; 
+        ctr.setP5 = eep_param.setP5; 
+        ctr.setP6 = eep_param.setP6; 
+        ctr.setP7 = eep_param.setP7; 
+        ctr.setP8 = eep_param.setP8;
     }
 }
 
@@ -381,7 +372,7 @@ void setup()
 
     delay_ms(500);
     BSP_BUZZER_Sound(); // 自检发声
-    BSP_UART_Println(UART1, "test");
+    BSP_UART_Println(UART1, "setup complete!");
 }
 
 void createTask()

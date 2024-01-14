@@ -22,7 +22,7 @@ OS：EasyOS  固定时间片
 +---APP - 程序入口
 |       app.c
 |       app.h
-|       config.h
+|       cfg.h
 |       STARTUP.A51
 |
 +---BSP - 板载支持包。bsp_xxx 为BSP各个子模块
@@ -32,32 +32,33 @@ OS：EasyOS  固定时间片
 |       bsp_buzzer.h
 |       bsp_eeprom.c
 |       bsp_eeprom.h
-|       bsp_heater.c
-|       bsp_heater.h
 |       bsp_kbd.c
 |       bsp_kbd.h
-|       bsp_led.c
-|       bsp_led.h
 |       bsp_ntc.c
 |       bsp_ntc.h
-|       bsp_oled.c
-|       bsp_oled.h
+|       bsp_relay.c
+|       bsp_relay.h
+|       bsp_seg.c
+|       bsp_seg.h
 |       bsp_uart.c
 |       bsp_uart.h
 |
 +---EXT-LIB - 扩展的公共包
 |       lib_delay.c - 延迟
 |       lib_delay.h
-|       lib_font_table.h - 自定义字符字典表
+|       lib_math.c - 延迟
+|       lib_math.h
 |       lib_stdint.h - C99引入的C标准库，C51没有，这里单独引入
 |       lib_str.c - 自定义字符串操作
 |       lib_str.h
 |       lib_mem.c - 内存堆栈
 |       lib_mem.h
 |
-\---RTX51 - RTX51 tiny 系统包
-        Conf_tny.A51
-        RTX51TNY.LIB
+\---OS - 系统包
+        os_timer.c
+        os_timer.h
+        os.c
+        os.h
 ```
 
 ---
@@ -77,12 +78,14 @@ RTX51
 ## 菜单
 
 ```
-工作模式
+运行模式
 1. 指示灯：继电器吸合工作，指示灯亮起或闪烁。
 2. 数码管：
-    + 显示LL：表示传感器开路，接好传感器，正常显示当前温度；
-    + 显示HH：表示超出测量范围，同时断开继电器；
-    + 显示---：高温报警
+    2.1 测量显示
+        + 显示LL：表示传感器开路，接好传感器，正常显示当前温度；
+        + 显示HH：表示超出测量范围，同时断开继电器；
+        + 显示---：高温报警
+    2.2 目标设定：默认28，设定范围 [P3, P2] 之间。
 
 设置模式
 1. P0 ———— 模式。默认值C。
@@ -109,7 +112,7 @@ RTX51
 ## 功能
 
 ```
-1. 长按「设置」，在"工作模式"和"设置模式"来回切换。
+1. 长按「设置」，在"运行模式"和"设置模式"来回切换。
 2. 进入工作模式：
     2.1 短按「设置」，显示 温度传感器测量的当前温度 和 设置目标温度 来回切换；
     2.2 停留在 设置目标温度 5s没有操作，自动返回显示 温度传感器测量的当前温度；

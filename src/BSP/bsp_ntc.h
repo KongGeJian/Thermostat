@@ -28,8 +28,8 @@
 *********************************************************************************************************
 */
 
-//ADC通道
-typedef enum MENU_ADC_CH
+//ADC通道枚举
+typedef enum ADC_CH_E
 {
     CH_0 = 0,
     CH_1,
@@ -47,7 +47,7 @@ typedef enum MENU_ADC_CH
     CH_13,
     CH_14,
     CH_15,  
-} MENU_ADC_CH_TYP;
+} ADC_CH_E_TYP;
 
 
 

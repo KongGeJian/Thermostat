@@ -6,7 +6,9 @@
 * Version : V1.0
 * Author  : 空格键
 * ----------------------------
-* Note(s) : 波特率发生器T2自动重载值。T2只有16位自动重装载模式，且默认12T模式。
+* Note(s) : 使用 keil->debug->debug windows 串口调试，有时会卡死，无输出。
+*             这时打开 Peripherals->Serial 打开 Serial Channel 窗口，修改下 Model 就可以了。
+*           波特率发生器T2自动重载值。T2只有16位自动重装载模式，且默认12T模式。
 *             串口定义
 *             ----------------------------------------------------------------
 *             串口      引脚                    切换
@@ -77,9 +79,7 @@ volatile byte pdata u2_r_parity;
 /*串口1发送字节*/
 static void _UART1_SendByte(byte dat) compact
 {
-#if (DEBUG_USE_SIMULATOR == 0)
     while (busy);           //等待上一个数据发送完成
-#endif
     busy = 1;               //标志位置位，由中断清除
     ACC = dat;              //计算偶数奇偶校验位P（PSW.0）
     if (P)                  //根据P设置奇偶校验位
@@ -104,9 +104,7 @@ static void _UART1_SendByte(byte dat) compact
 /*串口2发送字节*/
 static void _UART2_SendByte(byte dat) compact
 {
-#if (DEBUG_USE_SIMULATOR == 0)
     while (busy);           //等待上一个数据发送完成
-#endif
     busy = 1;               //标志位置位，由中断清除
     ACC = dat;              //计算偶数奇偶校验位P（PSW.0）
     if (P)                  //根据P设置奇偶校验位
