@@ -442,16 +442,6 @@
               <FilePath>.\src\BSP\bsp_kbd.h</FilePath>
             </File>
             <File>
-              <FileName>bsp_power.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\BSP\bsp_power.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_power.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\src\BSP\bsp_power.h</FilePath>
-            </File>
-            <File>
               <FileName>bsp_seg.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\BSP\bsp_seg.c</FilePath>
@@ -472,14 +462,24 @@
               <FilePath>.\src\BSP\bsp_uart.h</FilePath>
             </File>
             <File>
-              <FileName>bsp_welder.c</FileName>
+              <FileName>bsp_ntc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\src\BSP\bsp_welder.c</FilePath>
+              <FilePath>.\src\BSP\bsp_ntc.c</FilePath>
             </File>
             <File>
-              <FileName>bsp_welder.h</FileName>
+              <FileName>bsp_ntc.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\src\BSP\bsp_welder.h</FilePath>
+              <FilePath>.\src\BSP\bsp_ntc.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_relay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\BSP\bsp_relay.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_relay.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\BSP\bsp_relay.h</FilePath>
             </File>
           </Files>
         </Group>
