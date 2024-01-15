@@ -110,10 +110,7 @@ void BSP_SEG_Init(void) large
     
     _Weite_Grid(GRID1_ADDR, SEG_SYMBOL[4]);
     _Weite_Grid(GRID2_ADDR, SEG_SYMBOL[3]);
-    _Weite_Grid(GRID3_ADDR, SEG_SYMBOL[3]);
-    _Weite_Grid(GRID4_ADDR, SEG_SYMBOL[3]);
-    _Weite_Grid(GRID5_ADDR, SEG_SYMBOL[3]);
-    _Weite_Grid(GRID6_ADDR, SEG_SYMBOL[5]);
+    _Weite_Grid(GRID3_ADDR, SEG_SYMBOL[5]);
 
     _Write_CMD(CMD_DISPLAY_CONTROL);    // 显示控制命令：
 }
@@ -130,9 +127,9 @@ void BSP_SEG_Show(byte seg_code[]) large
     _Weite_Grid(GRID1_ADDR, seg_code[0]);
     _Weite_Grid(GRID2_ADDR, seg_code[1]);
     _Weite_Grid(GRID3_ADDR, seg_code[2]);
-    _Weite_Grid(GRID4_ADDR, seg_code[3]);
-    _Weite_Grid(GRID5_ADDR, seg_code[4]);
-    _Weite_Grid(GRID6_ADDR, seg_code[5]);
+    // _Weite_Grid(GRID4_ADDR, seg_code[3]);
+    // _Weite_Grid(GRID5_ADDR, seg_code[4]);
+    // _Weite_Grid(GRID6_ADDR, seg_code[5]);
     _Write_CMD(CMD_DISPLAY_CONTROL);
 }
 
@@ -146,141 +143,141 @@ void BSP_SEG_Black() large
     _Weite_Grid(GRID1_ADDR, 0x00);
     _Weite_Grid(GRID2_ADDR, 0x00);
     _Weite_Grid(GRID3_ADDR, 0x00);
-    _Weite_Grid(GRID4_ADDR, 0x00);
-    _Weite_Grid(GRID5_ADDR, 0x00);
-    _Weite_Grid(GRID6_ADDR, 0x00);
+    // _Weite_Grid(GRID4_ADDR, 0x00);
+    // _Weite_Grid(GRID5_ADDR, 0x00);
+    // _Weite_Grid(GRID6_ADDR, 0x00);
     _Write_CMD(CMD_DISPLAY_CONTROL);
 }
 
 /*
 *********************************************************************************************************
-* Description : 显示菜单
+* Description : 显示xx
 *
-* Argument(s) : menu - 菜单编号
+* Note(s)     : none.
 *********************************************************************************************************
 */
-void BSP_SEG_Show_Menu(u8 menu) large
+//自定义
+void BSP_SEG_Show_Custom(byte seg1, byte seg2, byte seg3) large
 {
-    if (menu >= 5)
-        return;
-
-    seg_code[0] = SEG_SYMBOL[4];
-    seg_code[1] = SEG_SYMBOL_MENU[menu];
-    seg_code[2] = SEG_SYMBOL[5];
-    seg_code[3] = SEG_SYMBOL[0];
-    seg_code[4] = SEG_SYMBOL[0];
-    seg_code[5] = SEG_SYMBOL[0];
+    seg_code[0] = seg1;
+    seg_code[1] = seg2;
+    seg_code[2] = seg3;
     BSP_SEG_Show(seg_code);
 }
 
-/*
-*********************************************************************************************************
-* Description : 显示子菜单-A H
-*
-* Argument(s) : menu - 一级菜单
-*               sub_symbol - 二级菜单符号
-*               i - 整数
-*
-* Note(s)     : 显示范围[0,99]
-*********************************************************************************************************
-*/
-void BSP_SEG_Show_SubMenu_AH(u8 menu, byte sub_symbol, byte seg5, byte seg6) large
+//设置模式菜单
+void BSP_SEG_Show_SetMenu(u8 n) large
 {
-    seg_code[0] = SEG_SYMBOL_MENU[menu];
-    seg_code[1] = sub_symbol;
-    seg_code[2] = SEG_SYMBOL[2];
-    seg_code[3] = SEG_SYMBOL[0];
-    seg_code[4] = seg5;
-    seg_code[5] = seg6;
+    seg_code[0] = SEG_SYMBOL[0];
+    seg_code[1] = SEG_SYMBOL[16];
+    seg_code[2] = SEG_DIGIT[n];
     BSP_SEG_Show(seg_code);
 }
 
-/*
-*********************************************************************************************************
-* Description : 显示子菜单-L
-*
-* Argument(s) : menu - 一级菜单
-*               sub_symbol - 二级菜单符号
-*               i - 整数
-*
-* Note(s)     : 显示范围[0,999]
-*********************************************************************************************************
-*/
-void BSP_SEG_Show_SubMenu_L(u8 menu, byte sub_symbol, u16 i) large
+//传感器开路
+void BSP_SEG_Show_SensorOpen() large
 {
-    i = math_imin(i, 999);
-
-    seg_code[0] = SEG_SYMBOL_MENU[menu];
-    seg_code[1] = sub_symbol;
-    seg_code[2] = SEG_SYMBOL[2];
-    seg_code[3] = SEG_DIGIT[i / 100];
-    seg_code[4] = SEG_DIGIT[i % 100 / 10];
-    seg_code[5] = SEG_DIGIT[i % 10];
+    seg_code[0] = SEG_SYMBOL[0];
+    seg_code[1] = SEG_SYMBOL[14];
+    seg_code[2] = SEG_SYMBOL[14];
     BSP_SEG_Show(seg_code);
 }
 
-/*
-*********************************************************************************************************
-* Description : 显示子菜单-U
-*
-* Argument(s) : menu - 一级菜单
-*               sub_symbol - 二级菜单符号
-*               f - 浮点数
-*
-* Note(s)     : <10时精度0.01，<100时精度0.1，>=100时精度1，显示范围[0.0,999]
-*********************************************************************************************************
-*/
-void BSP_SEG_Show_SubMenu_U(u8 menu, byte sub_symbol, float f) large
+//越界，超出范围
+void BSP_SEG_Show_OutOfRange() large
 {
-    int tmp;
-    if (f > 999)
-        f = 999;
+    seg_code[0] = SEG_SYMBOL[0];
+    seg_code[1] = SEG_SYMBOL[13];
+    seg_code[2] = SEG_SYMBOL[13];
+    BSP_SEG_Show(seg_code);
+}
 
-    seg_code[0] = SEG_SYMBOL_MENU[menu];
-    seg_code[1] = sub_symbol;
+//告警
+void BSP_SEG_Show_Alarm() large
+{
+    seg_code[0] = SEG_SYMBOL[2];
+    seg_code[1] = SEG_SYMBOL[2];
     seg_code[2] = SEG_SYMBOL[2];
-    if (f >= 99.95)
+    BSP_SEG_Show(seg_code);
+}
+
+//清理，显示clr
+void BSP_SEG_Show_Clear() large
+{
+    seg_code[0] = 0x58;
+    seg_code[1] = 0x18;
+    seg_code[2] = 0x50;
+    BSP_SEG_Show(seg_code);
+}
+
+//显示整型值
+void BSP_SEG_Show_IntVal(u16 val) large
+{
+    val = math_imin(val, 999);
+
+    seg_code[0] = SEG_SYMBOL[0];
+    seg_code[1] = SEG_SYMBOL[0];
+    seg_code[2] = SEG_SYMBOL[0];
+
+    if (val >= 100)
+        seg_code[0] = SEG_DIGIT[i / 100];
+    if (val >= 10)
+        seg_code[1] = SEG_DIGIT[i % 100 / 10];
+    seg_code[2] = SEG_DIGIT[i % 10];
+    BSP_SEG_Show(seg_code);
+}
+
+//温度值。范围[-400,3000], 精度0.1，显示考虑四射五入
+void BSP_SEG_Show_Temp(s16 temp) large
+{
+    u8 sign, decimal;
+
+    sign = temp > 0 ? 1 : 0; // 符号：1正数，0负数
+    temp = abs(temp);
+    decimal = temp % 10; // 小数部分
+    temp = temp / 10;    // 整数部分
+
+    seg_code[0] = SEG_SYMBOL[0];
+    seg_code[1] = SEG_SYMBOL[0];
+    seg_code[2] = SEG_SYMBOL[0];
+
+    if (temp >= 100)
     {
-        tmp = (int) (f + 0.05);
-        seg_code[3] = SEG_DIGIT[tmp / 100];
-        seg_code[4] = SEG_DIGIT[tmp % 100 / 10];
-        seg_code[5] = SEG_DIGIT[tmp % 10];
+        temp += decimal >= 5 ? 1 : 0;
+        seg_code[0] = SEG_DIGIT[temp / 100];
+        seg_code[1] = SEG_DIGIT[temp % 100 / 10];
+        seg_code[2] = SEG_DIGIT[temp % 10];
     }
-    else if (f >= 9.995)
+    else if (temp >= 10)
     {
-        tmp =  (int) ((f + 0.005) * 10);
-        seg_code[3] = SEG_DIGIT[tmp / 100];
-        seg_code[4] = SEG_DIGIT[tmp % 100 / 10] | SEG_SYMBOL[1];
-        seg_code[5] = SEG_DIGIT[tmp % 10];
+        if (sign)
+        {
+            seg_code[0] = SEG_DIGIT[temp / 10];
+            seg_code[1] = SEG_DIGIT[temp % 10] | SEG_SYMBOL[1];
+            seg_code[2] = SEG_DIGIT[decimal];
+        }
+        else
+        {
+            temp += decimal >= 5 ? 1 : 0;
+            seg_code[0] = SEG_SYMBOL[2];
+            seg_code[1] = SEG_DIGIT[temp / 10];
+            seg_code[2] = SEG_DIGIT[temp % 10];
+        }
     }
     else
     {
-        tmp =  (int) ((f + 0.0005) * 100);
-        seg_code[3] = SEG_DIGIT[tmp / 100] | SEG_SYMBOL[1];
-        seg_code[4] = SEG_DIGIT[tmp % 100 / 10];
-        seg_code[5] = SEG_DIGIT[tmp % 10];
+        if (sign)
+        {
+            seg_code[1] = SEG_DIGIT[temp] | SEG_SYMBOL[1];
+            seg_code[2] = SEG_DIGIT[decimal];
+        }
+        else
+        {
+            seg_code[0] = SEG_SYMBOL[2];
+            seg_code[1] = SEG_DIGIT[temp] | SEG_SYMBOL[1];
+            seg_code[2] = SEG_DIGIT[decimal];
+        }
     }
-    BSP_SEG_Show(seg_code);
-}
-
-/*
-*********************************************************************************************************
-* Description : 显示子菜单-R
-*
-* Argument(s) : menu - 一级菜单
-*               i - 整数
-*
-* Note(s)     : 显示范围[0,999]
-*********************************************************************************************************
-*/
-void BSP_SEG_Show_SubMenu_R(u8 menu, byte seg4, byte seg5, byte seg6) large
-{
-    seg_code[0] = SEG_SYMBOL_MENU[menu];
-    seg_code[1] = SEG_SYMBOL[0];
-    seg_code[2] = SEG_SYMBOL[2];
-    seg_code[3] = seg4;
-    seg_code[4] = seg5;
-    seg_code[5] = seg6;
     BSP_SEG_Show(seg_code);
 }
 

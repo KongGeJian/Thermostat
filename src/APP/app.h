@@ -3,7 +3,7 @@
 * Name    : app.h
 * Version : V1.0
 * Author  : 空格键
-* Date    : 2022-04-23
+* Date    : 2024-01-06
 *******************************************************************************
 */
 
@@ -92,25 +92,30 @@ typedef enum MENU_SET_P0_E
 #define M_SET_P6_MIN  0
 #define M_SET_P6_MAX  110
 
-//控制
-typedef struct CTR
+// 菜单控制
+typedef struct MENU_CTR
 {
-    MENU_E_TYP menu;         // 菜单
-    MENU_RUN_E_TYP runMenu;  // 菜单
-    MENU_SET_E_TYP setMenu;  // 菜单
-    s16 targetTemp;          // 设定目标温度
+    MENU_E_TYP menu;        // 菜单
+    MENU_RUN_E_TYP runMenu; // 运行模式菜单
+    MENU_SET_E_TYP setMenu; // 设置模式菜单
+    boolean setMenuVal;     // 设置模式值：true-显示值，false显示菜单
+} MENU_CTR_TYP;
+
+//配置参数
+typedef struct CFG_PARAM
+{
+    s16 targetTemp;          // 设定目标温度，精度1
     MENU_SET_P0_E_TYP setP0; // P0
     u8 setP1;                // P1，精度0.1，真实值 ÷10
     s16 setP2;               // P2
-    s8 setP3;                // P3
+    s16 setP3;               // P3
     u8 setP4;                // P4
     s8 setP5;                // P5, 精度0.1，真实值 ÷10
     s8 setP6;                // P6
     u8 setP7;                // P7，预留
     u8 setP8;                // P8，预留
     boolean setP9;           // 重置标识
-} CTR_TYP;
-
+} CFG_PARAM_TYP;
 
 /*
 *******************************************************************************

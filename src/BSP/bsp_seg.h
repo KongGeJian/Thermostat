@@ -39,9 +39,9 @@ static const unsigned char code SEG_DIGIT[16] = {
     0x7F, // 0B 01111111, 8
     0x6F, // 0B 01101111, 9
     0x77, // 0B 01110111, A
-    0x7C, // 0B 01111100, B
+    0x7C, // 0B 01111100, B b
     0x39, // 0B 00111001, C
-    0x5E, // 0B 01011110, D
+    0x5E, // 0B 01011110, D d
     0x79, // 0B 01111001, E
     0x71, // 0B 01110001, F
 };
@@ -58,15 +58,14 @@ static const unsigned char code SEG_SYMBOL[] = {
     0x1C, // 7, 凵
     0x64, // 8, ㄣ
     0x08, // 9, _
-};
-
-//定义数码管符号：菜单
-static const unsigned char code SEG_SYMBOL_MENU[] = {
-    0x77, // 0, M_A
-    0x76, // 1, M_H
-    0x3E, // 2, M_U
-    0x38, // 3, M_L
-    0x70, // 4, M_R
+    0x00, // 10, 预留
+    0x39, // 11, C
+    0x71, // 12, F
+    0x76, // 13, H
+    0x38, // 14, L
+    0x5C, // 15, o
+    0x73, // 16, P
+    0x70, // 17, r
 };
 
 
@@ -84,11 +83,14 @@ extern void BSP_SEG_Init(void) large;
 extern void BSP_SEG_Show(byte seg_code[]) large;
 extern void BSP_SEG_Black() large;
 
-extern void BSP_SEG_Show_Menu(u8 menu) large;
-extern void BSP_SEG_Show_SubMenu_AH(u8 menu, byte sub_symbol, byte seg5, byte seg6) large;
-extern void BSP_SEG_Show_SubMenu_L(u8 menu, byte sub_symbol, u16 i) large;
-extern void BSP_SEG_Show_SubMenu_U(u8 menu, byte sub_symbol, float f) large;
-extern void BSP_SEG_Show_SubMenu_R(u8 menu, byte seg4, byte seg5, byte seg6) large;
+extern void BSP_SEG_Show_Custom(byte seg1, byte seg2, byte seg3) large;
+extern void BSP_SEG_Show_SetMenu(u8 n) large;
+extern void BSP_SEG_Show_SensorOpen() large;
+extern void BSP_SEG_Show_OutOfRange() large;
+extern void BSP_SEG_Show_Alarm() large;
+extern void BSP_SEG_Show_Clear() large;
+extern void BSP_SEG_Show_IntVal(u16 val) large;
+extern void BSP_SEG_Show_Temp(s16 temp) large;
 
 
 #endif

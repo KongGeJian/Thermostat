@@ -3,7 +3,7 @@
 * Name    : app.c
 * Version : V1.0
 * Author  : 空格键
-* Date    : 2022-04-23
+* Date    : 2024-01-06
 * ----------------------------
 * Note(s) : -
 *******************************************************************************
@@ -23,9 +23,10 @@
 *******************************************************************************
 */
 
-CTR_TYP idata ctr; //控制
-
-CTR_TYP xdata eep_param; //eep保存参数
+MENU_CTR_TYP  idata app_menu_ctr;   //应用菜单控制
+CFG_PARAM_TYP idata app_cfg_param;  //应用配置参数
+CFG_PARAM_TYP xdata eep_param;      //eep保存参数
+s16 xdata currTemp;                 //当前温度，精度0.1, ÷10才是真实温度。INT16_MIN表示NTC未接入
 
 //睡眠计时
 #define SLEEP_TIME 60   //60s
@@ -43,45 +44,49 @@ volatile bit data flag_sleep = false;       //保存参数标识
 */
 
 //默认值
-void defaultVariable() compact
+void defaultParam() compact
 {
-    ctr.targetTemp = M_RUN_SETTING_DEFAULT;
-    ctr.setP0 = M_SET_P0_C;
-    ctr.setP1 = M_SET_P1_DEFAULT;
-    ctr.setP2 = M_SET_P2_DEFAULT;
-    ctr.setP3 = M_SET_P3_DEFAULT;
-    ctr.setP4 = M_SET_P4_DEFAULT;
-    ctr.setP5 = M_SET_P5_DEFAULT;
-    ctr.setP6 = M_SET_P6_OFF;
-    ctr.setP7 = 0;
-    ctr.setP8 = 0;
-    ctr.setP9 = false;
+    app_cfg_param.targetTemp = M_RUN_SETTING_DEFAULT;
+    app_cfg_param.setP0 = M_SET_P0_C;
+    app_cfg_param.setP1 = M_SET_P1_DEFAULT;
+    app_cfg_param.setP2 = M_SET_P2_DEFAULT;
+    app_cfg_param.setP3 = M_SET_P3_DEFAULT;
+    app_cfg_param.setP4 = M_SET_P4_DEFAULT;
+    app_cfg_param.setP5 = M_SET_P5_DEFAULT;
+    app_cfg_param.setP6 = M_SET_P6_OFF;
+    app_cfg_param.setP7 = 0;
+    app_cfg_param.setP8 = 0;
+    app_cfg_param.setP9 = false;
 }
 
-//初始化变量
-void initVariable() compact
+//初始化参数
+void initParam() compact
 {
-    u16 len;
+    // u16 len;
 
-    ctr.menu = M_RUN;
-    ctr.runMenu = M_RUN_MEASURE;
-    ctr.setMenu = M_SET_P0;
+    app_menu_ctr.menu = M_RUN;
+    app_menu_ctr.runMenu = M_RUN_MEASURE;
+    app_menu_ctr.setMenu = M_SET_P0;
+    app_menu_ctr.setMenuVal = false;
     defaultVariable();
 
+    currTemp = INT16_MIN;
+
     //从EEP初始化配置
-    len = sizeof(eep_param);
-    if (BSP_EEPROM_Read_Params(&eep_param, len))
+    // len = sizeof(eep_param);
+    // if (BSP_EEPROM_Read_Params(&eep_param, len))
+    if (BSP_EEPROM_Read_Params(&eep_param, sizeof(eep_param)))
     {
-        ctr.targetTemp = eep_param.targetTemp;
-        ctr.setP0 = eep_param.setP0;
-        ctr.setP1 = eep_param.setP1; 
-        ctr.setP2 = eep_param.setP2; 
-        ctr.setP3 = eep_param.setP3; 
-        ctr.setP4 = eep_param.setP4; 
-        ctr.setP5 = eep_param.setP5; 
-        ctr.setP6 = eep_param.setP6; 
-        ctr.setP7 = eep_param.setP7; 
-        ctr.setP8 = eep_param.setP8;
+        app_cfg_param.targetTemp = eep_param.targetTemp;
+        app_cfg_param.setP0 = eep_param.setP0;
+        app_cfg_param.setP1 = eep_param.setP1; 
+        app_cfg_param.setP2 = eep_param.setP2; 
+        app_cfg_param.setP3 = eep_param.setP3; 
+        app_cfg_param.setP4 = eep_param.setP4; 
+        app_cfg_param.setP5 = eep_param.setP5; 
+        app_cfg_param.setP6 = eep_param.setP6; 
+        app_cfg_param.setP7 = eep_param.setP7; 
+        app_cfg_param.setP8 = eep_param.setP8;
     }
 }
 
@@ -205,56 +210,84 @@ void refreshSegShow() large
     if (!flag_refresh_seg)
         return;
 
-    //显示主菜单
-    if (ctr.sub_menu == 0)
-    {
-        BSP_SEG_Show_Menu(ctr.menu);
-        flag_refresh_seg = false;
-        return;
-    }
     //显示子菜单
-    switch (ctr.menu)
+    switch (app_menu_ctr.menu)
     {
-    case M_A:
-        if (ctr.sub_menu == M_A_1)
-            BSP_SEG_Show_SubMenu_AH(ctr.menu, SEG_SYMBOL[0], SEG_DIGIT[ctr.auto_gear / 10], SEG_DIGIT[ctr.auto_gear % 10]);
-        break;
-    case M_H:
-        if (ctr.sub_menu == M_H_1)
-            BSP_SEG_Show_SubMenu_AH(ctr.menu, SEG_SYMBOL[6], SEG_DIGIT[ctr.hand_pd.pwidth / 10], SEG_DIGIT[ctr.hand_pd.pwidth % 10]);
-        else if (ctr.sub_menu == M_H_2)
-            BSP_SEG_Show_SubMenu_AH(ctr.menu, SEG_SYMBOL[7], SEG_DIGIT[ctr.hand_pd.nwidth / 10] | SEG_SYMBOL[1], SEG_DIGIT[ctr.hand_pd.nwidth % 10]);
-        else if (ctr.sub_menu == M_H_3)
-            BSP_SEG_Show_SubMenu_AH(ctr.menu, SEG_SYMBOL[8], SEG_DIGIT[ctr.hand_pd.num / 10], SEG_DIGIT[ctr.hand_pd.num % 10]);
-        break;
-    case M_U:
-        if (ctr.sub_menu == M_U_1)
-            BSP_SEG_Show_SubMenu_U(ctr.menu, SEG_SYMBOL[0], ctr.voltage);
-        break;
-    case M_L:
-        if (ctr.sub_menu == M_L_1)
-            BSP_SEG_Show_SubMenu_L(ctr.menu, SEG_SYMBOL[0], ctr.weld_count);
-        break;
-    case M_R:
-        if (ctr.sub_menu == M_R_1)
+    case M_RUN:  //运行模式
+        switch (app_menu_ctr.runMenu)
         {
-            BSP_SEG_Show_SubMenu_R(ctr.menu, 0x58, 0x18, 0x50); //clr
-            if (ctr.reset == 1)
-            {
-                cnt = 3;
-                while (cnt--)
-                {
-                    BSP_SEG_Show_SubMenu_R(ctr.menu, SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[0]);
-                    delay_ms(200);
-                    BSP_SEG_Show_SubMenu_R(ctr.menu, 0x58, 0x18, 0x50);
-                    delay_ms(500);
-                }
-                BSP_BUZZER_Sound();
-            }
+        case M_RUN_MEASURE: // 测量值
+            if (currTemp == INT16_MIN)
+                BSP_SEG_Show_SensorOpen();
+            else if (currTemp < M_SET_P3_MIN || currTemp > M_SET_P2_MAX)
+                BSP_SEG_Show_OutOfRange();
+            else
+                BSP_SEG_Show_Temp(currTemp);
+            break;
+        case M_RUN_SETTING: // 设定值
+            BSP_SEG_Show_Temp(app_cfg_param.targetTemp * 10);
+            break;
         }
         break;
-    default:
-        break;
+    case M_SET: // 设置模式
+        if (!app_menu_ctr.setMenuVal) //显示菜单Px
+        {
+            BSP_SEG_Show_SetMenu(app_menu_ctr.setMenu);
+        }
+        else // 显示数值
+        {
+            switch (app_menu_ctr.setMenu)
+            {
+            case M_SET_P0:
+                if (app_cfg_param.setP0 == M_SET_P0_C)
+                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[11]);
+                else
+                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[13]);
+                break;
+            case M_SET_P1:
+                BSP_SEG_Show_Temp(app_cfg_param.setP1);
+                break;
+            case M_SET_P2:
+                BSP_SEG_Show_Temp(app_cfg_param.setP2 * 10);
+                break;
+            case M_SET_P3:
+                BSP_SEG_Show_Temp(app_cfg_param.setP3 * 10);
+                break;
+            case M_SET_P4:
+                BSP_SEG_Show_IntVal(app_cfg_param.setP4);
+                break;
+            case M_SET_P5:
+                BSP_SEG_Show_Temp(app_cfg_param.setP5);
+                break;
+            case M_SET_P6:
+                if (app_cfg_param.setP6 == M_SET_P6_OFF)
+                    BSP_SEG_Show_Custom(SEG_SYMBOL[15], SEG_SYMBOL[12], SEG_SYMBOL[12]);
+                else
+                    BSP_SEG_Show_IntVal(app_cfg_param.setP6);
+                break;
+            case M_SET_P7:
+                BSP_SEG_Show_IntVal(0);
+                break;
+            case M_SET_P8:
+                BSP_SEG_Show_IntVal(0);
+                break;
+            case M_SET_P9:
+                BSP_SEG_Show_Clear(); // clr
+                if (app_cfg_param.setP9)
+                {
+                    cnt = 3;
+                    while (cnt--)
+                    {
+                        BSP_SEG_Black();
+                        delay_ms(200);
+                        BSP_SEG_Show_Clear();
+                        delay_ms(500);
+                    }
+                    BSP_BUZZER_Sound();
+                }
+                break;
+            }
+        }
     }
     flag_refresh_seg = false;
 }
@@ -276,8 +309,8 @@ void keyCtrProcess() large
     sleep_countdown = SLEEP_TIME;   //重新倒计时
 }
 
-//焊接
-void welder() large
+//继电器工作
+void relayWork() large
 {
     WELDER_STATE_E_TYP chk_state;
 
@@ -367,8 +400,7 @@ void mcuSleepWatch() large
 void setup()
 {
     BSP_Init();
-
-    initVariable();
+    initParam();
 
     delay_ms(500);
     BSP_BUZZER_Sound(); // 自检发声
@@ -379,7 +411,7 @@ void createTask()
 {
     OS_CreateTask(0, 100, refreshSegShow);  //数码管刷新，立即运行，后每100ms运行一次
     OS_CreateTask(11, 10, keyCtrProcess);   //按键控制扫描，每10ms扫描一次
-    OS_CreateTask(12, 200, welder);         //焊接
+    OS_CreateTask(12, 200, relayWork);      //继电器工作
     OS_CreateTask(13, 1000, saveParams);    //保存参数
     OS_CreateTask(16, 1000, mcuSleepWatch); //睡眠检测
 }
