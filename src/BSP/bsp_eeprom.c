@@ -215,6 +215,7 @@ boolean BSP_EEPROM_Write_Params(void *eep_params, u16 len) large
 boolean BSP_EEPROM_Read_Params(void *eep_params, u16 len) large
 {
     u8 i;
+    byte *eep_p = (byte *)eep_params;
     word addr = IAP_ADDR_SECTOR_1;
     
     if (len > 500)
@@ -225,7 +226,7 @@ boolean BSP_EEPROM_Read_Params(void *eep_params, u16 len) large
     addr++;
 
     for (i = 0; i < len; i++)
-        *eep_params++ = BSP_EEPROM_ReadByte(addr++);
+        *eep_p++ = BSP_EEPROM_ReadByte(addr++);
 
     return true;
 }

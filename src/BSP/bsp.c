@@ -44,7 +44,7 @@ void BSP_Init(void) large
     BSP_BUZZER_Init();
     BSP_EEPROM_Init();
     BSP_NTC_Init();
-    BSP_RELAY_INIT();
+    BSP_RELAY_Init();
 }
 
 /**********************************************END******************************************************/

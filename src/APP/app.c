@@ -5,7 +5,7 @@
 * Author  : 空格键
 * Date    : 2024-01-06
 * ----------------------------
-* Note(s) : -
+* Note(s) : 整型类型，精度0.1，表示含义：÷10才是真实温度值
 *******************************************************************************
 */
 
@@ -26,11 +26,11 @@
 MENU_CTR_TYP  idata app_menu_ctr;   //应用菜单控制
 CFG_PARAM_TYP idata app_cfg_param;  //应用配置参数
 CFG_PARAM_TYP xdata eep_param;      //eep保存参数
-s16 xdata currTemp;                 //当前温度，精度0.1, ÷10才是真实温度。INT16_MIN表示NTC未接入
+s16 xdata currTemp;                 //当前温度，精度0.1。INT16_MIN表示NTC未接入
+boolean xdata work;                 //继电器吸合工作
 
-//睡眠计时
-#define SLEEP_TIME 60   //60s
-u8 xdata sleep_countdown = SLEEP_TIME;
+#define AUTO_RETURN_TIME 60   //字段返回时间，单位：秒
+u8 xdata auto_return_countdown = AUTO_RETURN_TIME;
 
 volatile bit data flag_refresh_seg = true;  //刷新数码管标识，上电默认刷新一次
 volatile bit data flag_save_params = false; //保存参数标识
@@ -71,6 +71,7 @@ void initParam() compact
     defaultVariable();
 
     currTemp = INT16_MIN;
+    work = false;
 
     //从EEP初始化配置
     // len = sizeof(eep_param);
@@ -87,26 +88,6 @@ void initParam() compact
         app_cfg_param.setP6 = eep_param.setP6; 
         app_cfg_param.setP7 = eep_param.setP7; 
         app_cfg_param.setP8 = eep_param.setP8;
-    }
-}
-
-//获取子菜单NR
-u8 getSubMenuNr(u8 menu)
-{
-    switch (menu)
-    {
-    case M_A:
-        return NR_M_A;
-    case M_H:
-        return NR_M_H;
-    case M_U:
-        return NR_M_U;
-    case M_L:
-        return NR_M_L;
-    case M_R:
-        return NR_M_R;
-    default:
-        return 1;
     }
 }
 
@@ -202,8 +183,8 @@ boolean keyAction() large
     return action;
 }
 
-//刷新数码管显示
-void refreshSegShow() large
+//数码管刷新显示
+void segRefreshShow() large
 {
     u8 cnt;
 
@@ -292,12 +273,10 @@ void refreshSegShow() large
     flag_refresh_seg = false;
 }
 
-//按键控制处理
-void keyCtrProcess() large
+//按键处理
+void keyProcess() large
 {
     boolean tmp; 
-    if (flag_sleep) //唤醒不做响应
-        return;
 
     if (!BSP_KBD_Scan()) 
         return;
@@ -306,48 +285,36 @@ void keyCtrProcess() large
     tmp = keyAction();
     flag_refresh_seg |= tmp;
     flag_save_params |= tmp;
-    sleep_countdown = SLEEP_TIME;   //重新倒计时
+    auto_return_countdown = AUTO_RETURN_TIME;   //重新倒计时
 }
 
 //继电器工作
 void relayWork() large
 {
-    WELDER_STATE_E_TYP chk_state;
-
-    if (ctr.menu != M_A && ctr.menu != M_H) // A H 才可焊接
+    if (app_menu_ctr.menu != M_RUN || app_menu_ctr.runMenu != M_RUN_MEASURE) // 不在运行模式+测量，不工作
         return;
-    if (ctr.sub_menu == 0) // 进入子菜单 才可焊接
+    if (currTemp < (M_SET_P3_MIN * 10) || currTemp > (M_SET_P2_MAX * 10)) // 温度不在有效范围，不工作
         return;
 
-    chk_state = BSP_WELDER_State();
-    if (BSP_WELDER_StateIsChange(chk_state))
-        BSP_UART_Println(UART1, "chk_state: %bX", chk_state);
-    if (chk_state == JUST_TOUCHED)
+    if (app_cfg_param.setP0 == M_SET_P0_C) // 制冷模式
     {
-        sleep_countdown = SLEEP_TIME;   //重新倒计时
-        // 嘀~   嘀嘀~
-        BSP_BUZZER_Sound();
-        delay_ms(500);
-        BSP_BUZZER_Sound();
-        delay_ms(50);
-        BSP_BUZZER_Sound();
-        // 启动焊接
-        BSP_WELDER_Start(getPd());
+        if (work == false && currTemp >= app_cfg_param.targetTemp)
+            work = true;
+        else if (work == true && currTemp <= (app_cfg_param.targetTemp - app_cfg_param.setP1))
+            work = false;
     }
-    else if (chk_state == JUST_FINISHED)
+    else if (app_cfg_param.setP0 == M_SET_P0_H) // 制热模式
     {
-        ctr.weld_count++;   //焊接次数++
-        delay_ms(500);
-        // 嘀嘀嘀~
-        BSP_BUZZER_Sound();
-        delay_ms(50);
-        BSP_BUZZER_Sound();
-        delay_ms(50);
-        BSP_BUZZER_Sound();
-        // 工作完毕，一个大延时
-        BSP_WELDER_End();
-        delay_ms(500);
+        if (work == false && currTemp <= app_cfg_param.targetTemp)
+            work = true;
+        else if (work == true && currTemp >= (app_cfg_param.targetTemp + app_cfg_param.setP1))
+            work = false;
     }
+
+    if (work)
+        BSP_RELAY_Start();
+    else
+        BSP_RELAY_Stop();
 }
 
 //保存参数
@@ -358,38 +325,27 @@ void saveParams() large
     if (!BSP_KBD_IsAllNone()) //有按键动作，延迟保存
         return;
 
-    eep_params[0] = ctr.menu;
-    eep_params[1] = ctr.sub_menu;
-    eep_params[2] = ctr.auto_gear;
-    eep_params[3] = ctr.hand_pd.pwidth;
-    eep_params[4] = ctr.hand_pd.nwidth;
-    eep_params[5] = ctr.hand_pd.num;
-    eep_params[6] = ctr.weld_count;
-    BSP_EEPROM_Write_Params(eep_params, EEP_PARAMS_LEN);
+    eep_param.targetTemp = app_cfg_param.targetTemp;
+    eep_param.setP0 = app_cfg_param.setP0;
+    eep_param.setP1 = app_cfg_param.setP1;
+    eep_param.setP2 = app_cfg_param.setP2;
+    eep_param.setP3 = app_cfg_param.setP3;
+    eep_param.setP4 = app_cfg_param.setP4;
+    eep_param.setP5 = app_cfg_param.setP5;
+    eep_param.setP6 = app_cfg_param.setP6;
+    eep_param.setP7 = app_cfg_param.setP7;
+    eep_param.setP8 = app_cfg_param.setP8;
+    eep_param.setP9 = app_cfg_param.setP9;
+    BSP_EEPROM_Write_Params(&eep_param, sizeof(eep_param));
 
     flag_save_params = false;
 }
 
-//睡眠检测
-void mcuSleepWatch() large
+//倒计时
+void countdown() large
 {
-    if (flag_sleep) //睡眠中醒来
-    {
-        flag_sleep = false;
-        sleep_countdown = SLEEP_TIME;   //重新倒计时
-        flag_refresh_seg = true;
-    }
-    else
-    {
-        sleep_countdown--;
-        // BSP_UART_Println(UART1, "sleep_countdown: %bu", sleep_countdown);
-        if (sleep_countdown == 0)
-        {
-            flag_sleep = true;
-            BSP_SEG_Black();    //关数码管
-            BSP_POWER_Off();    //MCU掉电模式
-        }
-    }
+    if (auto_return_countdown > 0)
+        auto_return_countdown--;
 }
 
 /*
@@ -409,9 +365,9 @@ void setup()
 
 void createTask()
 {
-    OS_CreateTask(0, 100, refreshSegShow);  //数码管刷新，立即运行，后每100ms运行一次
-    OS_CreateTask(11, 10, keyCtrProcess);   //按键控制扫描，每10ms扫描一次
-    OS_CreateTask(12, 200, relayWork);      //继电器工作
-    OS_CreateTask(13, 1000, saveParams);    //保存参数
-    OS_CreateTask(16, 1000, mcuSleepWatch); //睡眠检测
+    OS_CreateTask(0, 100, segRefreshShow); // 数码管刷新，立即运行，后每100ms运行一次
+    OS_CreateTask(11, 10, keyProcess);     // 按键处理，每10ms扫描一次
+    OS_CreateTask(12, 200, relayWork);     // 继电器工作
+    OS_CreateTask(13, 1000, saveParams);   // 保存参数
+    OS_CreateTask(16, 1000, countdown);    // 倒计时
 }

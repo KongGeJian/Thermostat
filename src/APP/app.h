@@ -70,12 +70,12 @@ typedef enum MENU_SET_P0_E
 #define M_SET_P1_MAX  150
 
 //子菜单: M_SET_P2
-#define M_SET_P2_DEFAULT  250
-#define M_SET_P2_MAX  300
+#define M_SET_P2_DEFAULT  2500
+#define M_SET_P2_MAX  3000
 
 //子菜单: M_SET_P3
-#define M_SET_P3_DEFAULT  -20
-#define M_SET_P3_MIN  -40
+#define M_SET_P3_DEFAULT  -200
+#define M_SET_P3_MIN  -400
 
 //子菜单: M_SET_P4
 #define M_SET_P4_DEFAULT  0
@@ -90,7 +90,7 @@ typedef enum MENU_SET_P0_E
 //子菜单: M_SET_P6
 #define M_SET_P6_OFF  -1
 #define M_SET_P6_MIN  0
-#define M_SET_P6_MAX  110
+#define M_SET_P6_MAX  1100
 
 // 菜单控制
 typedef struct MENU_CTR
@@ -104,14 +104,14 @@ typedef struct MENU_CTR
 //配置参数
 typedef struct CFG_PARAM
 {
-    s16 targetTemp;          // 设定目标温度，精度1
+    s16 targetTemp;          // 设定目标温度，精度0.1
     MENU_SET_P0_E_TYP setP0; // P0
-    u8 setP1;                // P1，精度0.1，真实值 ÷10
-    s16 setP2;               // P2
-    s16 setP3;               // P3
+    u8 setP1;                // P1，精度0.1
+    s16 setP2;               // P2，精度0.1
+    s16 setP3;               // P3，精度0.1
     u8 setP4;                // P4
-    s8 setP5;                // P5, 精度0.1，真实值 ÷10
-    s8 setP6;                // P6
+    s8 setP5;                // P5, 精度0.1
+    s16 setP6;               // P6, 精度0.1
     u8 setP7;                // P7，预留
     u8 setP8;                // P8，预留
     boolean setP9;           // 重置标识

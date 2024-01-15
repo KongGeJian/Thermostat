@@ -50,7 +50,7 @@
 * Note(s)     : none.
 *********************************************************************************************************
 */
-void BSP_WELDER_Init(void) large
+void BSP_RELAY_Init(void) large
 {
     P1M1 &= ~0x02;      //DD设置为推挽输出
     P1M0 |= 0x02;
@@ -65,7 +65,7 @@ void BSP_WELDER_Init(void) large
 * Note(s)     : none.
 *********************************************************************************************************
 */
-void BSP_WELDER_Start() large
+void BSP_RELAY_Start() large
 {
     DD_Start();
 }
@@ -77,7 +77,7 @@ void BSP_WELDER_Start() large
 * Note(s)     : none.
 *********************************************************************************************************
 */
-void BSP_WELDER_Stop() large
+void BSP_RELAY_Stop() large
 {
     DD_Stop();
 }
