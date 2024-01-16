@@ -33,12 +33,12 @@ typedef enum MENU_E
 typedef enum MENU_RUN_E
 {
     M_RUN_MEASURE,  //测量
-    M_RUN_SETTING,  //设定 
+    M_RUN_SETTING,  //设定目标
     NR_M_RUN,
 } MENU_RUN_E_TYP;
 
 //子菜单: M_SET_P1
-#define M_RUN_SETTING_DEFAULT  28
+#define M_RUN_SETTING_DEFAULT  280
 
 //子菜单: M_SET
 typedef enum MENU_SET_E

@@ -7,6 +7,7 @@
 * Author  : 空格键
 * ----------------------------
 * Note(s) : 外接上拉电阻。按下低电平0，松开高电平1
+*           扫描周期: 10ms
 * Tip(s)  : 概念：
 *             + 按下：按键刚按下
 *             + 释放：按键刚松开
@@ -46,7 +47,6 @@ typedef struct
 #define K1 P32      //设置
 #define K2 P33      //加
 #define K3 P34      //减
-#define K4 P35      //确认
 
 /**按键重复（扫描周期 10ms）**/
 #define K_CNT_SHAKE        2 //消抖次数
@@ -54,13 +54,8 @@ typedef struct
 #define K_CNT_REP_END    100 //按下1s不放为重复键
 #define K_CNT_LONG_PRESS 200 //按下2s不放为长按
 
-
-static KEY_STATE_TYP xdata k1_s = {0, 0, 0};
-static KEY_STATE_TYP xdata k2_s = {0, 0, 0};
-static KEY_STATE_TYP xdata k3_s = {0, 0, 0};
-static KEY_STATE_TYP xdata k4_s = {0, 0, 0};
-
-static u8 xdata key_code[NR_K] = {K_NONE, K_NONE, K_NONE, K_NONE};
+static KEY_STATE_TYP xdata k_s[NR_K];      //按键状态
+static u8            xdata key_code[NR_K]; //按键码
 
 
 
@@ -145,11 +140,21 @@ static u8 _Key_Scan(bit kx, KEY_STATE_TYP *kx_s) large
 */
 void BSP_KBD_Init(void) large
 {
+    u8 i;
+
     // 设置IO模式：高阻输入
     P3M1 |= 0x3C;
     P3M0 &= ~0x3C;
 
-    K1 = K2 = K3 = K4 = 1;  //引脚拉高
+    K1 = K2 = K3 = 1; // 引脚拉高
+
+    for (i = 0; i < NR_K; i++)
+    {
+        k_s[i].down = 0;
+        k_s[i].down_count = 0;
+        k_s[i].press_time = 0;
+        key_code[i] = K_NONE;
+    }
 }
 
 /*
@@ -165,10 +170,9 @@ void BSP_KBD_Init(void) large
 */
 boolean BSP_KBD_Scan() large
 {
-    key_code[0] = _Key_Scan(K1, &k1_s);
-    key_code[1] = _Key_Scan(K2, &k2_s);
-    key_code[2] = _Key_Scan(K3, &k3_s);
-    key_code[3] = _Key_Scan(K4, &k4_s);
+    key_code[0] = _Key_Scan(K1, &k_s[0]);
+    key_code[1] = _Key_Scan(K2, &k_s[1]);
+    key_code[2] = _Key_Scan(K3, &k_s[2]);
     return !BSP_KBD_IsAllNone();
 }
 
@@ -260,19 +264,7 @@ s32 BSP_KBD_GetPressTime(KEY_E_TYP kx) large
     if (!(keyCode & K_MAKE))
         return -1;
     
-    switch (kx)
-    {
-    case K_SET:
-        return k1_s.press_time;
-    case K_ADD:
-        return k2_s.press_time;
-    case K_SUB:
-        return k3_s.press_time;
-    case K_CFM:
-        return k4_s.press_time;
-    default:
-        return -1;
-    }
+    return k_s[kx].press_time;
 }
 
 /**********************************************RND******************************************************/

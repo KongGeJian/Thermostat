@@ -32,9 +32,8 @@ boolean xdata work;                 //继电器吸合工作
 #define AUTO_RETURN_TIME 60   //字段返回时间，单位：秒
 u8 xdata auto_return_countdown = AUTO_RETURN_TIME;
 
-volatile bit data flag_refresh_seg = true;  //刷新数码管标识，上电默认刷新一次
+volatile bit data flag_seg_refresh = true;  //数码管刷新标识，上电默认刷新一次
 volatile bit data flag_save_params = false; //保存参数标识
-volatile bit data flag_sleep = false;       //保存参数标识
 
 
 /*
@@ -56,7 +55,6 @@ void defaultParam() compact
     app_cfg_param.setP6 = M_SET_P6_OFF;
     app_cfg_param.setP7 = 0;
     app_cfg_param.setP8 = 0;
-    app_cfg_param.setP9 = false;
 }
 
 //初始化参数
@@ -68,7 +66,9 @@ void initParam() compact
     app_menu_ctr.runMenu = M_RUN_MEASURE;
     app_menu_ctr.setMenu = M_SET_P0;
     app_menu_ctr.setMenuVal = false;
-    defaultVariable();
+
+    defaultParam();
+    app_cfg_param.setP9 = false;
 
     currTemp = INT16_MIN;
     work = false;
@@ -88,99 +88,18 @@ void initParam() compact
         app_cfg_param.setP6 = eep_param.setP6; 
         app_cfg_param.setP7 = eep_param.setP7; 
         app_cfg_param.setP8 = eep_param.setP8;
+        //eep中P9不设置
     }
 }
 
-//加减计算
-boolean addOrSub(u8 *p, u8 max, u8 min)
+//判断加减操作：-1减，1加，0无操作
+s8 decideAddSub() large
 {
     if ((BSP_KBD_IsShort(K_ADD) || BSP_KBD_IsRepeat(K_ADD)) && BSP_KBD_IsNone(K_SUB)) //+
-    {
-        *p = math_imin(*p + 1, max);
-        return true;
-    }
+        return 1;
     else if ((BSP_KBD_IsShort(K_SUB) || BSP_KBD_IsRepeat(K_SUB)) && BSP_KBD_IsNone(K_ADD)) //-
-    {
-        *p = math_imax(*p - 1, min);
-        return true;
-    }
-    return false;
-}
-
-//按键动作响应
-boolean keyAction() large
-{
-    bit action = false;
-
-    if (BSP_KBD_IsShort(K_SET)) //设置-短按
-    {
-        if (ctr.sub_menu != 0) //退出子菜单
-        {
-            ctr.sub_menu = 0;
-            action = true;
-        }
-    }
-    else if (BSP_KBD_IsShort(K_CFM)) //确认-短按
-    {
-        ctr.sub_menu = (ctr.sub_menu + 1) % getSubMenuNr(ctr.menu); //子菜单切换
-        ctr.sub_menu += (ctr.sub_menu == 0) ? 1 : 0;
-        action = true;
-    }
-    else if (BSP_KBD_IsNone(K_SET) || BSP_KBD_IsNone(K_CFM)) //加减-的按键动作
-    {
-        if (ctr.sub_menu == 0) //主菜单切换
-        {
-            action = addOrSub(&ctr.menu, M_R, M_A);
-        }
-        else //子菜单设置
-        {
-            switch (ctr.menu)
-            {
-            case M_A:
-                if (ctr.sub_menu == M_A_1)
-                    action = addOrSub(&ctr.auto_gear, PD_GEAR_MAX, PD_GEAR_MIN);
-                break;
-            case M_H:
-                if (ctr.sub_menu == M_H_1)
-                    action = addOrSub(&ctr.hand_pd.pwidth, PD_WIDTH_MAX, PD_P_WIDTH_MIN);
-                else if (ctr.sub_menu == M_H_2)
-                    action = addOrSub(&ctr.hand_pd.nwidth, PD_WIDTH_MAX, PD_N_WIDTH_MIN);
-                else if (ctr.sub_menu == M_H_3)
-                    action = addOrSub(&ctr.hand_pd.num, PD_NUM_MAX, PD_NUM_MIN);
-                break;
-            case M_U:
-                if (ctr.sub_menu == M_U_1)
-                {
-                    ctr.voltage = BSP_POWER_GetVoltage() / 1000.0;
-                    action = true;
-                }
-                break;
-            case M_R:
-                if (ctr.sub_menu == M_R_1)
-                {
-                    if (ctr.reset == 0)
-                    {
-                        if (BSP_KBD_GetPressTime(K_SUB) >= 500) //长按5s
-                        {
-                            ctr.reset = 1;
-                            defaultVariable();
-                            action = true;
-                        }
-                    }
-                    else
-                    {
-                        if (BSP_KBD_IsRelease(K_SUB))
-                            ctr.reset = 0;
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    return action;
+        return -1;
+    return 0;
 }
 
 //数码管刷新显示
@@ -188,13 +107,12 @@ void segRefreshShow() large
 {
     u8 cnt;
 
-    if (!flag_refresh_seg)
+    if (!flag_seg_refresh)
         return;
 
-    //显示子菜单
     switch (app_menu_ctr.menu)
     {
-    case M_RUN:  //运行模式
+    case M_RUN: // 运行模式
         switch (app_menu_ctr.runMenu)
         {
         case M_RUN_MEASURE: // 测量值
@@ -206,12 +124,12 @@ void segRefreshShow() large
                 BSP_SEG_Show_Temp(currTemp);
             break;
         case M_RUN_SETTING: // 设定值
-            BSP_SEG_Show_Temp(app_cfg_param.targetTemp * 10);
+            BSP_SEG_Show_Temp(app_cfg_param.targetTemp);
             break;
         }
         break;
     case M_SET: // 设置模式
-        if (!app_menu_ctr.setMenuVal) //显示菜单Px
+        if (!app_menu_ctr.setMenuVal) // 显示菜单Px
         {
             BSP_SEG_Show_SetMenu(app_menu_ctr.setMenu);
         }
@@ -229,10 +147,10 @@ void segRefreshShow() large
                 BSP_SEG_Show_Temp(app_cfg_param.setP1);
                 break;
             case M_SET_P2:
-                BSP_SEG_Show_Temp(app_cfg_param.setP2 * 10);
+                BSP_SEG_Show_IntVal(app_cfg_param.setP2 / 10);
                 break;
             case M_SET_P3:
-                BSP_SEG_Show_Temp(app_cfg_param.setP3 * 10);
+                BSP_SEG_Show_IntVal(app_cfg_param.setP3 / 10);
                 break;
             case M_SET_P4:
                 BSP_SEG_Show_IntVal(app_cfg_param.setP4);
@@ -244,7 +162,7 @@ void segRefreshShow() large
                 if (app_cfg_param.setP6 == M_SET_P6_OFF)
                     BSP_SEG_Show_Custom(SEG_SYMBOL[15], SEG_SYMBOL[12], SEG_SYMBOL[12]);
                 else
-                    BSP_SEG_Show_IntVal(app_cfg_param.setP6);
+                    BSP_SEG_Show_IntVal(app_cfg_param.setP6 / 10);
                 break;
             case M_SET_P7:
                 BSP_SEG_Show_IntVal(0);
@@ -269,23 +187,155 @@ void segRefreshShow() large
                 break;
             }
         }
+        break;
     }
-    flag_refresh_seg = false;
+    flag_seg_refresh = false;
 }
 
 //按键处理
 void keyProcess() large
 {
-    boolean tmp; 
+    bit action = false;
+    s8 addSub;
 
-    if (!BSP_KBD_Scan()) 
+    if (!BSP_KBD_Scan())
         return;
     //BSP_UART_Println(UART1, "key_code: %02bX,%02bX,%02bX,%02bX", BSP_KBD_KeyCode(K_SET), BSP_KBD_KeyCode(K_ADD), BSP_KBD_KeyCode(K_SUB), BSP_KBD_KeyCode(K_CFM));
 
-    tmp = keyAction();
-    flag_refresh_seg |= tmp;
-    flag_save_params |= tmp;
+    addSub = decideAddSub();
+    switch (app_menu_ctr.menu)
+    {
+    case M_RUN: // 运行模式
+        if (BSP_KBD_IsLong(K_SET) && app_menu_ctr.runMenu == M_RUN_MEASURE) // 设置-长按
+        {
+            app_menu_ctr.menu = M_SET;
+        }
+        else if (BSP_KBD_IsShort(K_SET)) //设置-短按
+        {
+            app_menu_ctr.runMenu = (app_menu_ctr.runMenu + 1) % NR_M_RUN; //切换
+        }
+        else if (addSub != 0 && app_menu_ctr.runMenu == M_RUN_SETTING) // 加减操作
+        {
+            if (addSub == 1) //+
+                app_cfg_param.targetTemp = math_imin(app_cfg_param.targetTemp + 10, app_cfg_param.setP2);
+            else //-
+                app_cfg_param.targetTemp = math_imax(app_cfg_param.targetTemp - 10, app_cfg_param.setP3);
+        }
+        break;
+    case M_SET: // 设置模式
+        if (BSP_KBD_IsLong(K_SET)) // 设置-长按
+        {
+            app_menu_ctr.menu = M_RUN;
+            flag_save_params = true;
+        }
+        else if (BSP_KBD_IsShort(K_SET)) //设置-短按
+        {
+            app_menu_ctr.setMenuVal = !app_menu_ctr.setMenuVal;
+        }
+        else if (addSub != 0) //加减操作
+        {
+            if (!app_menu_ctr.setMenuVal) //显示菜单
+            {
+                if (addSub == 1) //+
+                    app_menu_ctr.setMenu = (app_menu_ctr.setMenu + 1) % NR_M_SET; // 切换true;
+                else //-
+                    app_menu_ctr.setMenu = app_menu_ctr.setMenu == M_SET_P0 ? M_SET_P9 : app_menu_ctr.setMenu - 1;
+            }
+            else //显示值
+            {
+                switch (app_menu_ctr.setMenu)
+                {
+                case M_SET_P0:
+                    app_cfg_param.setP0 = app_cfg_param.setP0 == M_SET_P0_C ? M_SET_P0_H : M_SET_P0_C;
+                    break;
+                case M_SET_P1:
+                    if (addSub == 1) //+
+                        app_cfg_param.setP1 = math_imin(app_cfg_param.setP1 + 1, M_SET_P1_MAX);
+                    else //-
+                        app_cfg_param.setP1 = math_imax(app_cfg_param.setP1 - 1, M_SET_P1_MIN);
+                    break;
+                case M_SET_P2:
+                    if (addSub == 1) //+
+                        app_cfg_param.setP2 = math_imin(app_cfg_param.setP2 + 10, M_SET_P2_MAX);
+                    else //-
+                        app_cfg_param.setP2 = math_imax(app_cfg_param.setP2 - 10, app_cfg_param.setP3);
+                    break;
+                case M_SET_P3:
+                    if (addSub == 1) //+
+                        app_cfg_param.setP3 = math_imin(app_cfg_param.setP3 + 10, app_cfg_param.setP2);
+                    else //-
+                        app_cfg_param.setP3 = math_imax(app_cfg_param.setP3 - 10, M_SET_P3_MIN);
+                    break;
+                case M_SET_P4:
+                    if (addSub == 1) //+
+                        app_cfg_param.setP4 = math_imin(app_cfg_param.setP4 + 1, M_SET_P4_MAX);
+                    else //-
+                        app_cfg_param.setP4 = math_imax(app_cfg_param.setP4 - 1, M_SET_P4_MIN);
+                    break;
+                case M_SET_P5:
+                    if (addSub == 1) //+
+                        app_cfg_param.setP5 = math_imin(app_cfg_param.setP5 + 1, M_SET_P5_MAX);
+                    else //-
+                        app_cfg_param.setP5 = math_imax(app_cfg_param.setP5 - 1, M_SET_P5_MIN);
+                    break;
+                case M_SET_P6:
+                    if (addSub == 1) //+
+                        if (app_cfg_param.setP6 == M_SET_P6_OFF)
+                            app_cfg_param.setP6 = M_SET_P6_MIN;
+                        else
+                            app_cfg_param.setP6 = math_imin(app_cfg_param.setP6 + 10, M_SET_P6_MAX);
+                    else //-
+                        if (app_cfg_param.setP6 == M_SET_P6_MIN)
+                            app_cfg_param.setP6 = M_SET_P6_OFF;
+                        else
+                            app_cfg_param.setP6 = math_imax(app_cfg_param.setP6 - 10, M_SET_P6_MIN);
+                    break;
+                case M_SET_P7:
+                    // no code
+                    break;
+                case M_SET_P8:
+                    // no code
+                    break;
+                case M_SET_P9:
+                    if (app_cfg_param.setP9 == false)
+                    {
+                        if (BSP_KBD_GetPressTime(K_ADD) >= 500 && BSP_KBD_GetPressTime(K_SUB) >= 500) // 加减同时按下超过6s
+                        {
+                            app_cfg_param.setP9 = true;
+                            defaultVariable();
+                        }
+                    }
+                    else
+                    {
+                        if (BSP_KBD_IsRelease(K_ADD) && BSP_KBD_IsRelease(K_SUB))
+                            app_cfg_param.setP9 = 0;
+                    }
+                    break;
+                }
+            }
+        }
+        break;
+    }
+
+    flag_seg_refresh = true;
     auto_return_countdown = AUTO_RETURN_TIME;   //重新倒计时
+}
+
+//获取温度值
+void getTemperature() large
+{
+    u16 sampleTemp = BSP_NTC_GetTemp(); // 温度采样值
+    BSP_UART_Println(UART1, "sampleTemp: %hd", sampleTemp);
+
+    if (sampleTemp == INT16_MIN) // 传感器未接入
+        currTemp = sampleTemp;
+    else
+        currTemp = sampleTemp / 10 + app_cfg_param.setP5; // 采样值转显示值，含校准值
+
+    if (app_cfg_param.setP6 != M_SET_P6_OFF && currTemp >= app_cfg_param.setP6) // 高温报警
+        BSP_BUZZER_Sound();
+
+    flag_seg_refresh = true;
 }
 
 //继电器工作
@@ -335,7 +385,7 @@ void saveParams() large
     eep_param.setP6 = app_cfg_param.setP6;
     eep_param.setP7 = app_cfg_param.setP7;
     eep_param.setP8 = app_cfg_param.setP8;
-    eep_param.setP9 = app_cfg_param.setP9;
+    eep_param.setP9 = false;
     BSP_EEPROM_Write_Params(&eep_param, sizeof(eep_param));
 
     flag_save_params = false;
@@ -344,13 +394,25 @@ void saveParams() large
 //倒计时
 void countdown() large
 {
-    if (auto_return_countdown > 0)
+    if (auto_return_countdown == 0)
+    {
+        if (!(app_menu_ctr.menu == M_RUN && app_menu_ctr.runMenu == M_RUN_MEASURE)) // 不是运行模式中的测量
+        {
+            app_menu_ctr.menu = M_RUN;
+            app_menu_ctr.runMenu = M_RUN_MEASURE;
+            flag_seg_refresh = true;
+            flag_save_params = true; // 自动保存
+        }
+    }
+    else
+    {
         auto_return_countdown--;
+    }
 }
 
 /*
 *******************************************************************************
-*                                   函数
+*                                   主函数
 *******************************************************************************
 */
 void setup()
@@ -367,7 +429,8 @@ void createTask()
 {
     OS_CreateTask(0, 100, segRefreshShow); // 数码管刷新，立即运行，后每100ms运行一次
     OS_CreateTask(11, 10, keyProcess);     // 按键处理，每10ms扫描一次
-    OS_CreateTask(12, 200, relayWork);     // 继电器工作
-    OS_CreateTask(13, 1000, saveParams);   // 保存参数
-    OS_CreateTask(16, 1000, countdown);    // 倒计时
+    OS_CreateTask(14, 500, getTemperature);// 获取温度值
+    OS_CreateTask(15, 200, relayWork);     // 继电器工作
+    OS_CreateTask(18, 1000, saveParams);   // 保存参数
+    OS_CreateTask(19, 1000, countdown);    // 倒计时
 }

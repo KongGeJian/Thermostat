@@ -32,7 +32,6 @@ typedef enum
     K_SET,  //设置
     K_ADD,  //加
     K_SUB,  //减
-    K_CFM,  //确认
     NR_K,   //结尾
 } KEY_E_TYP;
 

@@ -227,7 +227,7 @@ void BSP_SEG_Show_IntVal(u16 val) large
     BSP_SEG_Show(seg_code);
 }
 
-//温度值。范围[-400,3000], 精度0.1，显示考虑四射五入
+//显示温度值。范围[-400,3000], 精度0.1，显示考虑四射五入
 void BSP_SEG_Show_Temp(s16 temp) large
 {
     u8 sign, decimal;
