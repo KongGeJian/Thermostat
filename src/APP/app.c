@@ -302,7 +302,7 @@ void keyProcess() large
                         if (BSP_KBD_GetPressTime(K_ADD) >= 500 && BSP_KBD_GetPressTime(K_SUB) >= 500) // 加减同时按下超过6s
                         {
                             app_cfg_param.setP9 = true;
-                            defaultVariable();
+                            defaultParam();
                         }
                     }
                     else

@@ -220,10 +220,10 @@ void BSP_SEG_Show_IntVal(u16 val) large
     seg_code[2] = SEG_SYMBOL[0];
 
     if (val >= 100)
-        seg_code[0] = SEG_DIGIT[i / 100];
+        seg_code[0] = SEG_DIGIT[val / 100];
     if (val >= 10)
-        seg_code[1] = SEG_DIGIT[i % 100 / 10];
-    seg_code[2] = SEG_DIGIT[i % 10];
+        seg_code[1] = SEG_DIGIT[val % 100 / 10];
+    seg_code[2] = SEG_DIGIT[val % 10];
     BSP_SEG_Show(seg_code);
 }
 

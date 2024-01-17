@@ -5,7 +5,7 @@
 # 2. 清单
 
 ```
-MCU：STC8G1K08 (1T)
+MCU：STC8G1K17 (1T)
 FOSC：内部时钟 12.000M Hz 
 EEPROM：设置 1K
 

@@ -57,7 +57,7 @@ u16 math_uimax(u16 a, u16 b) compact reentrant
 *********************************************************************************************************
 */
 //滤波算法：中位值平均
-u16 math_filter_median_average(u16 xdata samples[], u8 len) compact reentrant
+u16 math_filter_median_average(u16 samples[], u8 len) compact reentrant
 {
     u32 sum = 0;
     u8 i, j;

@@ -31,7 +31,7 @@
 
 #define NTC = P16;  //ADC 通道6
 
-int xdata *BGV;   //内部1.19V参考信号源值存放在idata中。idata的EFH地址存放高字节，F0H地址存放低字节。电压单位(mV)
+int idata *BGV;   //内部1.19V参考信号源值存放在idata中。idata的EFH地址存放高字节，F0H地址存放低字节。电压单位(mV)
 u16 xdata vcc_ref;  //电源参考电压，单位(mV)
 
 #define TMP_ADC_LEN 10
@@ -152,7 +152,7 @@ s16 BSP_NTC_GetTemp() large
     }
 
     Rntc = (ADC_10RES - adc_val) * R0 * 1.0 / adc_val; // 计算NTC阻值
-    t = _Convert_2_Temp(Rntc);                         // 计算温度
+    t = _Convert_Rntc_2_Temp(Rntc);                    // 计算温度
     return (s16)((t + 0.005) * 100);                   // 四舍五入，成100取整
 }
 

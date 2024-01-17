@@ -38,6 +38,6 @@ extern u16  math_uimin(u16 a, u16 b) compact reentrant;
 extern s16  math_imax(s16 a, s16 b) compact reentrant;
 extern u16  math_uimax(u16 a, u16 b) compact reentrant;
 
-extern u16  math_filter_median_average(u16 xdata sample_vals[], u8 len) compact reentrant;
+extern u16  math_filter_median_average(u16 sample_vals[], u8 len) compact reentrant;
 
 #endif

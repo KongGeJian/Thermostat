@@ -41,8 +41,8 @@ extern byte BSP_EEPROM_ReadByte(word addr) compact;
 extern void BSP_EEPROM_WriteByte(word addr, byte dat) compact;
 extern void BSP_EEPROM_EraseSector(word addr) compact;
 
-extern boolean BSP_EEPROM_Write_Params(void *eep_params, u16 len) large
-extern boolean BSP_EEPROM_Read_Params(void *eep_params, u16 len) large
+extern boolean BSP_EEPROM_Write_Params(void *eep_params, u16 len) large;
+extern boolean BSP_EEPROM_Read_Params(void *eep_params, u16 len) large;
 
 
 #endif
