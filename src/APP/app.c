@@ -5,7 +5,7 @@
 * Author  : 空格键
 * Date    : 2024-01-06
 * ----------------------------
-* Note(s) : 整型类型，精度0.1，表示含义：÷10才是真实温度值
+* Note(s) : 整型类型，精度0.1，表示含义：÷10才是真实值
 *******************************************************************************
 */
 
@@ -27,9 +27,10 @@ MENU_CTR_TYP  idata app_menu_ctr;   //应用菜单控制
 CFG_PARAM_TYP idata app_cfg_param;  //应用配置参数
 CFG_PARAM_TYP xdata eep_param;      //eep保存参数
 s16 xdata currTemp;                 //当前温度，精度0.1。INT16_MIN表示NTC未接入
+boolean xdata start;                //启动开关
 boolean xdata work;                 //继电器吸合工作
 
-#define AUTO_RETURN_TIME 60   //字段返回时间，单位：秒
+#define AUTO_RETURN_TIME 10   //字段返回时间，单位：秒
 u8 xdata auto_return_countdown = AUTO_RETURN_TIME;
 
 volatile bit data flag_seg_refresh = true;  //数码管刷新标识，上电默认刷新一次
@@ -60,8 +61,6 @@ void defaultParam() compact
 //初始化参数
 void initParam() compact
 {
-    // u16 len;
-
     app_menu_ctr.menu = M_RUN;
     app_menu_ctr.runMenu = M_RUN_MEASURE;
     app_menu_ctr.setMenu = M_SET_P0;
@@ -71,11 +70,10 @@ void initParam() compact
     app_cfg_param.setP9 = false;
 
     currTemp = INT16_MIN;
+    start = false;
     work = false;
 
     //从EEP初始化配置
-    // len = sizeof(eep_param);
-    // if (BSP_EEPROM_Read_Params(&eep_param, len))
     if (BSP_EEPROM_Read_Params(&eep_param, sizeof(eep_param)))
     {
         app_cfg_param.targetTemp = eep_param.targetTemp;
@@ -109,7 +107,12 @@ void segRefreshShow() large
 
     if (!flag_seg_refresh)
         return;
-
+    BSP_UART_Println(UART1, "segShow_menu: {m=%bu, rm=%bu, sm=%bu, smv=%bu}", app_menu_ctr.menu, app_menu_ctr.runMenu, app_menu_ctr.setMenu, app_menu_ctr.setMenuVal);
+    BSP_UART_Println(UART1, "segShow_param_1: {tt=%d, p0=%bu, p1=%bu, p2=%d, p3=%d}",
+            app_cfg_param.targetTemp, app_cfg_param.setP0, app_cfg_param.setP1, app_cfg_param.setP2, app_cfg_param.setP3);
+    BSP_UART_Println(UART1, "segShow_param_2: {p4=%bu, p5=%bd, p6=%hd, p9=%bu, s=%bu}",
+            app_cfg_param.setP4, app_cfg_param.setP5, app_cfg_param.setP6, app_cfg_param.setP9, start);
+    
     switch (app_menu_ctr.menu)
     {
     case M_RUN: // 运行模式
@@ -121,10 +124,10 @@ void segRefreshShow() large
             else if (currTemp < M_SET_P3_MIN || currTemp > M_SET_P2_MAX)
                 BSP_SEG_Show_OutOfRange();
             else
-                BSP_SEG_Show_Temp(currTemp);
+                BSP_SEG_Show_DecVal(currTemp);
             break;
         case M_RUN_SETTING: // 设定值
-            BSP_SEG_Show_Temp(app_cfg_param.targetTemp);
+            BSP_SEG_Show_IntVal(app_cfg_param.targetTemp / 10);
             break;
         }
         break;
@@ -139,12 +142,12 @@ void segRefreshShow() large
             {
             case M_SET_P0:
                 if (app_cfg_param.setP0 == M_SET_P0_C)
-                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[11]);
+                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[11]);
                 else
-                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[13]);
+                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[0], SEG_SYMBOL[13]);
                 break;
             case M_SET_P1:
-                BSP_SEG_Show_Temp(app_cfg_param.setP1);
+                BSP_SEG_Show_DecVal(app_cfg_param.setP1);
                 break;
             case M_SET_P2:
                 BSP_SEG_Show_IntVal(app_cfg_param.setP2 / 10);
@@ -156,11 +159,11 @@ void segRefreshShow() large
                 BSP_SEG_Show_IntVal(app_cfg_param.setP4);
                 break;
             case M_SET_P5:
-                BSP_SEG_Show_Temp(app_cfg_param.setP5);
+                BSP_SEG_Show_DecVal(app_cfg_param.setP5);
                 break;
             case M_SET_P6:
                 if (app_cfg_param.setP6 == M_SET_P6_OFF)
-                    BSP_SEG_Show_Custom(SEG_SYMBOL[15], SEG_SYMBOL[12], SEG_SYMBOL[12]);
+                    BSP_SEG_Show_Custom(SEG_SYMBOL[0], SEG_SYMBOL[15], SEG_SYMBOL[12], SEG_SYMBOL[12]);
                 else
                     BSP_SEG_Show_IntVal(app_cfg_param.setP6 / 10);
                 break;
@@ -171,7 +174,7 @@ void segRefreshShow() large
                 BSP_SEG_Show_IntVal(0);
                 break;
             case M_SET_P9:
-                BSP_SEG_Show_Clear(); // clr
+                BSP_SEG_Show_Reset(); // clr
                 if (app_cfg_param.setP9)
                 {
                     cnt = 3;
@@ -179,7 +182,7 @@ void segRefreshShow() large
                     {
                         BSP_SEG_Black();
                         delay_ms(200);
-                        BSP_SEG_Show_Clear();
+                        BSP_SEG_Show_Reset();
                         delay_ms(500);
                     }
                     BSP_BUZZER_Sound();
@@ -200,7 +203,9 @@ void keyProcess() large
 
     if (!BSP_KBD_Scan())
         return;
-    //BSP_UART_Println(UART1, "key_code: %02bX,%02bX,%02bX,%02bX", BSP_KBD_KeyCode(K_SET), BSP_KBD_KeyCode(K_ADD), BSP_KBD_KeyCode(K_SUB), BSP_KBD_KeyCode(K_CFM));
+    // BSP_UART_Println(UART1, "[keyProcess] key_code=%02bX,%02bX,%02bX", BSP_KBD_KeyCode(K_SET), BSP_KBD_KeyCode(K_ADD), BSP_KBD_KeyCode(K_SUB));
+    
+    auto_return_countdown = AUTO_RETURN_TIME;   //重新倒计时
 
     addSub = decideAddSub();
     switch (app_menu_ctr.menu)
@@ -209,30 +214,44 @@ void keyProcess() large
         if (BSP_KBD_IsLong(K_SET) && app_menu_ctr.runMenu == M_RUN_MEASURE) // 设置-长按
         {
             app_menu_ctr.menu = M_SET;
+            app_menu_ctr.setMenuVal = false;
+            flag_seg_refresh = true;
         }
         else if (BSP_KBD_IsShort(K_SET)) //设置-短按
         {
             app_menu_ctr.runMenu = (app_menu_ctr.runMenu + 1) % NR_M_RUN; //切换
+            flag_seg_refresh = true;
         }
-        else if (addSub != 0 && app_menu_ctr.runMenu == M_RUN_SETTING) // 加减操作
+        else if (addSub != 0) // 加减操作
         {
-            if (addSub == 1) //+
-                app_cfg_param.targetTemp = math_imin(app_cfg_param.targetTemp + 10, app_cfg_param.setP2);
-            else //-
-                app_cfg_param.targetTemp = math_imax(app_cfg_param.targetTemp - 10, app_cfg_param.setP3);
+            if (app_menu_ctr.runMenu == M_RUN_MEASURE)
+            {
+                start = !start;
+                flag_seg_refresh = true;
+            }
+            else if (app_menu_ctr.runMenu == M_RUN_SETTING)
+            {
+                if (addSub == 1) //+
+                    app_cfg_param.targetTemp = math_imin(app_cfg_param.targetTemp + 10, app_cfg_param.setP2);
+                else //-
+                    app_cfg_param.targetTemp = math_imax(app_cfg_param.targetTemp - 10, app_cfg_param.setP3);
+                flag_seg_refresh = true;
+            }
         }
         break;
     case M_SET: // 设置模式
         if (BSP_KBD_IsLong(K_SET)) // 设置-长按
         {
             app_menu_ctr.menu = M_RUN;
+            flag_seg_refresh = true;
             flag_save_params = true;
         }
         else if (BSP_KBD_IsShort(K_SET)) //设置-短按
         {
             app_menu_ctr.setMenuVal = !app_menu_ctr.setMenuVal;
+            flag_seg_refresh = true;
         }
-        else if (addSub != 0) //加减操作
+        else if (addSub != 0) //加/减操作
         {
             if (!app_menu_ctr.setMenuVal) //显示菜单
             {
@@ -280,15 +299,16 @@ void keyProcess() large
                     break;
                 case M_SET_P6:
                     if (addSub == 1) //+
-                        if (app_cfg_param.setP6 == M_SET_P6_OFF)
-                            app_cfg_param.setP6 = M_SET_P6_MIN;
-                        else
+                        if (app_cfg_param.setP6 > M_SET_P6_OFF)
                             app_cfg_param.setP6 = math_imin(app_cfg_param.setP6 + 10, M_SET_P6_MAX);
-                    else //-
-                        if (app_cfg_param.setP6 == M_SET_P6_MIN)
-                            app_cfg_param.setP6 = M_SET_P6_OFF;
                         else
+                            app_cfg_param.setP6 = M_SET_P6_MIN;
+                    else //-
+                        if (app_cfg_param.setP6 > M_SET_P6_MIN)
                             app_cfg_param.setP6 = math_imax(app_cfg_param.setP6 - 10, M_SET_P6_MIN);
+                        else
+                            app_cfg_param.setP6 = M_SET_P6_OFF;
+                    
                     break;
                 case M_SET_P7:
                     // no code
@@ -296,36 +316,35 @@ void keyProcess() large
                 case M_SET_P8:
                     // no code
                     break;
-                case M_SET_P9:
-                    if (app_cfg_param.setP9 == false)
-                    {
-                        if (BSP_KBD_GetPressTime(K_ADD) >= 500 && BSP_KBD_GetPressTime(K_SUB) >= 500) // 加减同时按下超过6s
-                        {
-                            app_cfg_param.setP9 = true;
-                            defaultParam();
-                        }
-                    }
-                    else
-                    {
-                        if (BSP_KBD_IsRelease(K_ADD) && BSP_KBD_IsRelease(K_SUB))
-                            app_cfg_param.setP9 = 0;
-                    }
-                    break;
                 }
+            }
+            flag_seg_refresh = true;
+        }
+        else if (app_menu_ctr.setMenu == M_SET_P9 && app_menu_ctr.setMenuVal) // 恢复出厂设置
+        {
+            if (app_cfg_param.setP9 == false)
+            {
+                if (BSP_KBD_GetPressTime(K_ADD) >= 500 && BSP_KBD_GetPressTime(K_SUB) >= 500) // 加减同时按下超过6s
+                {
+                    app_cfg_param.setP9 = true;
+                    defaultParam();
+                    flag_seg_refresh = true;
+                }
+            }
+            else
+            {
+                if (BSP_KBD_IsRelease(K_ADD) || BSP_KBD_IsRelease(K_SUB))
+                    app_cfg_param.setP9 = false;
             }
         }
         break;
     }
-
-    flag_seg_refresh = true;
-    auto_return_countdown = AUTO_RETURN_TIME;   //重新倒计时
 }
 
 //获取温度值
 void getTemperature() large
 {
-    u16 sampleTemp = BSP_NTC_GetTemp(); // 温度采样值
-    BSP_UART_Println(UART1, "sampleTemp: %hd", sampleTemp);
+    s16 sampleTemp = BSP_NTC_GetTemp(); // 温度采样值
 
     if (sampleTemp == INT16_MIN) // 传感器未接入
         currTemp = sampleTemp;
@@ -335,6 +354,7 @@ void getTemperature() large
     if (app_cfg_param.setP6 != M_SET_P6_OFF && currTemp >= app_cfg_param.setP6) // 高温报警
         BSP_BUZZER_Sound();
 
+    BSP_UART_Println(UART1, "[getTemperature] sampleTemp=%d, currTemp=%d", sampleTemp, currTemp);
     flag_seg_refresh = true;
 }
 
@@ -342,9 +362,21 @@ void getTemperature() large
 void relayWork() large
 {
     if (app_menu_ctr.menu != M_RUN || app_menu_ctr.runMenu != M_RUN_MEASURE) // 不在运行模式+测量，不工作
+    {
+        BSP_RELAY_Stop();
         return;
-    if (currTemp < (M_SET_P3_MIN * 10) || currTemp > (M_SET_P2_MAX * 10)) // 温度不在有效范围，不工作
+    }    
+    if (currTemp < M_SET_P3_MIN || currTemp > M_SET_P2_MAX) // 温度不在有效范围，不工作
+    {
+        BSP_RELAY_Stop();
+        BSP_UART_Println(UART1, "[relayWork] illegal param! currTemp=%d", currTemp);
         return;
+    }
+    if (!start)
+    {
+        BSP_RELAY_Stop();
+        return;
+    }
 
     if (app_cfg_param.setP0 == M_SET_P0_C) // 制冷模式
     {
@@ -360,7 +392,8 @@ void relayWork() large
         else if (work == true && currTemp >= (app_cfg_param.targetTemp + app_cfg_param.setP1))
             work = false;
     }
-
+    
+    BSP_UART_Println(UART1, "[relayWork] work=%bu, currTemp=%d, target=%d, p1=%bu", work, currTemp, app_cfg_param.targetTemp, app_cfg_param.setP1);
     if (work)
         BSP_RELAY_Start();
     else
@@ -394,19 +427,19 @@ void saveParams() large
 //倒计时
 void countdown() large
 {
+    if (auto_return_countdown > 0)
+        auto_return_countdown--;
+
     if (auto_return_countdown == 0)
     {
         if (!(app_menu_ctr.menu == M_RUN && app_menu_ctr.runMenu == M_RUN_MEASURE)) // 不是运行模式中的测量
         {
             app_menu_ctr.menu = M_RUN;
             app_menu_ctr.runMenu = M_RUN_MEASURE;
+            app_menu_ctr.setMenuVal = false;
             flag_seg_refresh = true;
             flag_save_params = true; // 自动保存
         }
-    }
-    else
-    {
-        auto_return_countdown--;
     }
 }
 
@@ -422,7 +455,7 @@ void setup()
 
     delay_ms(500);
     BSP_BUZZER_Sound(); // 自检发声
-    BSP_UART_Println(UART1, "setup complete!");
+    BSP_UART_Println(UART1, "==== setup complete! ====");
 }
 
 void createTask()

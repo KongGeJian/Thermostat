@@ -50,7 +50,7 @@ typedef struct
 
 /**按键重复（扫描周期 10ms）**/
 #define K_CNT_SHAKE        2 //消抖次数
-#define K_CNT_REP_SPEED   10 //重复按键速度，1s 10个
+#define K_CNT_REP_SPEED   10 //重复按键速度，1s 10个，一个周期是100ms，10ms扫描一次，扫描10次计一个重复。
 #define K_CNT_REP_END    100 //按下1s不放为重复键
 #define K_CNT_LONG_PRESS 200 //按下2s不放为长按
 

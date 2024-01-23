@@ -83,6 +83,14 @@ static void _Weite_Grid(byte grid_addr, byte seg_code) compact
     STB = 1;
 }
 
+//清seg_code
+static void _Clear_SegCode() large
+{
+    s8 i;
+    for (i = sizeof(seg_code) / sizeof(seg_code[0]) - 1; i >= 0; i--)
+        seg_code[i] = SEG_SYMBOL[0];
+}
+
 /*
 *********************************************************************************************************
 * Description : 数码管初始化
@@ -110,7 +118,8 @@ void BSP_SEG_Init(void) large
     
     _Weite_Grid(GRID1_ADDR, SEG_SYMBOL[4]);
     _Weite_Grid(GRID2_ADDR, SEG_SYMBOL[3]);
-    _Weite_Grid(GRID3_ADDR, SEG_SYMBOL[5]);
+    _Weite_Grid(GRID3_ADDR, SEG_SYMBOL[3]);
+    _Weite_Grid(GRID4_ADDR, SEG_SYMBOL[5]);
 
     _Write_CMD(CMD_DISPLAY_CONTROL);    // 显示控制命令：
 }
@@ -127,7 +136,7 @@ void BSP_SEG_Show(byte seg_code[]) large
     _Weite_Grid(GRID1_ADDR, seg_code[0]);
     _Weite_Grid(GRID2_ADDR, seg_code[1]);
     _Weite_Grid(GRID3_ADDR, seg_code[2]);
-    // _Weite_Grid(GRID4_ADDR, seg_code[3]);
+    _Weite_Grid(GRID4_ADDR, seg_code[3]);
     // _Weite_Grid(GRID5_ADDR, seg_code[4]);
     // _Weite_Grid(GRID6_ADDR, seg_code[5]);
     _Write_CMD(CMD_DISPLAY_CONTROL);
@@ -140,13 +149,8 @@ void BSP_SEG_Show(byte seg_code[]) large
 */
 void BSP_SEG_Black() large
 {
-    _Weite_Grid(GRID1_ADDR, 0x00);
-    _Weite_Grid(GRID2_ADDR, 0x00);
-    _Weite_Grid(GRID3_ADDR, 0x00);
-    // _Weite_Grid(GRID4_ADDR, 0x00);
-    // _Weite_Grid(GRID5_ADDR, 0x00);
-    // _Weite_Grid(GRID6_ADDR, 0x00);
-    _Write_CMD(CMD_DISPLAY_CONTROL);
+    _Clear_SegCode();
+    BSP_SEG_Show(seg_code);
 }
 
 /*
@@ -157,27 +161,28 @@ void BSP_SEG_Black() large
 *********************************************************************************************************
 */
 //自定义
-void BSP_SEG_Show_Custom(byte seg1, byte seg2, byte seg3) large
+void BSP_SEG_Show_Custom(byte seg1, byte seg2, byte seg3, byte seg4) large
 {
     seg_code[0] = seg1;
     seg_code[1] = seg2;
     seg_code[2] = seg3;
+    seg_code[3] = seg4;
     BSP_SEG_Show(seg_code);
 }
 
 //设置模式菜单
 void BSP_SEG_Show_SetMenu(u8 n) large
 {
-    seg_code[0] = SEG_SYMBOL[0];
-    seg_code[1] = SEG_SYMBOL[16];
-    seg_code[2] = SEG_DIGIT[n];
+    _Clear_SegCode();
+    seg_code[0] = SEG_SYMBOL[16];
+    seg_code[1] = SEG_DIGIT[n];
     BSP_SEG_Show(seg_code);
 }
 
 //传感器开路
 void BSP_SEG_Show_SensorOpen() large
 {
-    seg_code[0] = SEG_SYMBOL[0];
+    _Clear_SegCode();
     seg_code[1] = SEG_SYMBOL[14];
     seg_code[2] = SEG_SYMBOL[14];
     BSP_SEG_Show(seg_code);
@@ -186,7 +191,7 @@ void BSP_SEG_Show_SensorOpen() large
 //越界，超出范围
 void BSP_SEG_Show_OutOfRange() large
 {
-    seg_code[0] = SEG_SYMBOL[0];
+    _Clear_SegCode();
     seg_code[1] = SEG_SYMBOL[13];
     seg_code[2] = SEG_SYMBOL[13];
     BSP_SEG_Show(seg_code);
@@ -195,88 +200,83 @@ void BSP_SEG_Show_OutOfRange() large
 //告警
 void BSP_SEG_Show_Alarm() large
 {
-    seg_code[0] = SEG_SYMBOL[2];
+    _Clear_SegCode();
     seg_code[1] = SEG_SYMBOL[2];
     seg_code[2] = SEG_SYMBOL[2];
     BSP_SEG_Show(seg_code);
 }
 
-//清理，显示clr
-void BSP_SEG_Show_Clear() large
+//显示clr
+void BSP_SEG_Show_Reset() large
 {
-    seg_code[0] = 0x58;
-    seg_code[1] = 0x18;
-    seg_code[2] = 0x50;
+    _Clear_SegCode();
+    seg_code[1] = 0x58;
+    seg_code[2] = 0x18;
+    seg_code[3] = 0x50;
     BSP_SEG_Show(seg_code);
 }
 
 //显示整型值
-void BSP_SEG_Show_IntVal(u16 val) large
+void BSP_SEG_Show_IntVal(s16 val) large
 {
-    val = math_imin(val, 999);
+    u8 sign;
+    sign = val >= 0 ? 0 : 1; // 符号：0正数，1负数
+    val = abs(val);
 
-    seg_code[0] = SEG_SYMBOL[0];
-    seg_code[1] = SEG_SYMBOL[0];
-    seg_code[2] = SEG_SYMBOL[0];
+    _Clear_SegCode();
 
     if (val >= 100)
-        seg_code[0] = SEG_DIGIT[val / 100];
+        seg_code[1] = SEG_DIGIT[val / 100];
     if (val >= 10)
-        seg_code[1] = SEG_DIGIT[val % 100 / 10];
-    seg_code[2] = SEG_DIGIT[val % 10];
+        seg_code[2] = SEG_DIGIT[val % 100 / 10];
+    seg_code[3] = SEG_DIGIT[val % 10];
+
+    if (sign)
+    {
+        if (val >= 100)
+            seg_code[0] = SEG_SYMBOL[2];
+        else if (val >= 10)
+            seg_code[1] = SEG_SYMBOL[2];
+        else
+            seg_code[2] = SEG_SYMBOL[2];
+    }   
     BSP_SEG_Show(seg_code);
 }
 
-//显示温度值。范围[-400,3000], 精度0.1，显示考虑四射五入
-void BSP_SEG_Show_Temp(s16 temp) large
+//显示小数值。范围[-400,3000], 精度0.1
+void BSP_SEG_Show_DecVal(s16 val) large
 {
     u8 sign, decimal;
+    u16 integer;
 
-    sign = temp > 0 ? 1 : 0; // 符号：1正数，0负数
-    temp = abs(temp);
-    decimal = temp % 10; // 小数部分
-    temp = temp / 10;    // 整数部分
+    sign = val >= 0 ? 0 : 1; // 符号：0正数，1负数
+    val = abs(val);
+    integer = val / 10; // 整数部分
+    decimal = val % 10; // 小数部分
 
-    seg_code[0] = SEG_SYMBOL[0];
-    seg_code[1] = SEG_SYMBOL[0];
-    seg_code[2] = SEG_SYMBOL[0];
+    _Clear_SegCode();
 
-    if (temp >= 100)
+    if (integer >= 100)
     {
-        temp += decimal >= 5 ? 1 : 0;
-        seg_code[0] = SEG_DIGIT[temp / 100];
-        seg_code[1] = SEG_DIGIT[temp % 100 / 10];
-        seg_code[2] = SEG_DIGIT[temp % 10];
+        seg_code[0] = SEG_DIGIT[integer / 100];
+        seg_code[1] = SEG_DIGIT[integer % 100 / 10];
+        seg_code[2] = SEG_DIGIT[integer % 10] | SEG_SYMBOL[1];
+        seg_code[3] = SEG_DIGIT[decimal];
     }
-    else if (temp >= 10)
+    else if (integer >= 10)
     {
         if (sign)
-        {
-            seg_code[0] = SEG_DIGIT[temp / 10];
-            seg_code[1] = SEG_DIGIT[temp % 10] | SEG_SYMBOL[1];
-            seg_code[2] = SEG_DIGIT[decimal];
-        }
-        else
-        {
-            temp += decimal >= 5 ? 1 : 0;
             seg_code[0] = SEG_SYMBOL[2];
-            seg_code[1] = SEG_DIGIT[temp / 10];
-            seg_code[2] = SEG_DIGIT[temp % 10];
-        }
+        seg_code[1] = SEG_DIGIT[integer / 10];
+        seg_code[2] = SEG_DIGIT[integer % 10] | SEG_SYMBOL[1];
+        seg_code[3] = SEG_DIGIT[decimal];
     }
     else
     {
         if (sign)
-        {
-            seg_code[1] = SEG_DIGIT[temp] | SEG_SYMBOL[1];
-            seg_code[2] = SEG_DIGIT[decimal];
-        }
-        else
-        {
-            seg_code[0] = SEG_SYMBOL[2];
-            seg_code[1] = SEG_DIGIT[temp] | SEG_SYMBOL[1];
-            seg_code[2] = SEG_DIGIT[decimal];
-        }
+            seg_code[1] = SEG_SYMBOL[2];
+        seg_code[2] = SEG_DIGIT[integer] | SEG_SYMBOL[1];
+        seg_code[3] = SEG_DIGIT[decimal];
     }
     BSP_SEG_Show(seg_code);
 }

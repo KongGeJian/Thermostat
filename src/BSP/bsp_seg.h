@@ -83,14 +83,14 @@ extern void BSP_SEG_Init(void) large;
 extern void BSP_SEG_Show(byte seg_code[]) large;
 extern void BSP_SEG_Black() large;
 
-extern void BSP_SEG_Show_Custom(byte seg1, byte seg2, byte seg3) large;
+extern void BSP_SEG_Show_Custom(byte seg1, byte seg2, byte seg3, byte seg4) large;
 extern void BSP_SEG_Show_SetMenu(u8 n) large;
 extern void BSP_SEG_Show_SensorOpen() large;
 extern void BSP_SEG_Show_OutOfRange() large;
 extern void BSP_SEG_Show_Alarm() large;
-extern void BSP_SEG_Show_Clear() large;
-extern void BSP_SEG_Show_IntVal(u16 val) large;
-extern void BSP_SEG_Show_Temp(s16 temp) large;
+extern void BSP_SEG_Show_Reset() large;
+extern void BSP_SEG_Show_IntVal(s16 val) large;
+extern void BSP_SEG_Show_DecVal(s16 val) large;
 
 
 #endif

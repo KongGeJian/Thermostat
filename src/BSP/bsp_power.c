@@ -33,12 +33,16 @@
 #define V_EN  P37   //电压测量使能。1=使能
 #define V_ADC P36   //电压测量ADC14
 
-#define VCC_REF 3370    //参考电压，单位(mV)。通过内部1.19参考电压和通道15，测量是3376；万用表测量3360
-
-int *BGV;   //内部1.19V参考信号源值存放在idata中。idata的EFH地址存放高字节，F0H地址存放低字节。电压单位(mV)
+#define ADC_BIT 1024    //ADC 10位输出
 
 #define TMP_ADC_LEN 10
 u16 xdata tmp_adc[TMP_ADC_LEN]; //存储临时电压
+
+//这里电源参考电压可以写死，也可以实时计算
+#define VCC_REF 3370    //参考电压，单位(mV)。通过内部1.19参考电压和通道15，测量是3376；万用表测量3360
+
+int idata *BGV;     //内部1.19V参考信号源值存放在idata中。idata的EFH地址存放高字节，F0H地址存放低字节。电压单位(mV)
+u16 xdata vcc_ref;  //电源参考电压，单位(mV)
 
 
 
@@ -48,10 +52,14 @@ u16 xdata tmp_adc[TMP_ADC_LEN]; //存储临时电压
 *********************************************************************************************************
 */
 
-//读取ADC结果
-u16 _ADC_Read()
+//读取ADC结果。channel=[0,15]
+static u16 _ADC_Read(u8 channel)
 {
     u16 res;
+
+    channel &= 0x0F;        //入参过滤
+    ADC_CONTR &= ~0x0F;     //设置通道，先清理，再设置
+    ADC_CONTR |= channel;
 
     ADC_CONTR |= 0x40;              //启动AD转换
     _nop_();
@@ -65,29 +73,13 @@ u16 _ADC_Read()
     return res;
 }
 
-//ADC电压滤波：中位值平均滤波法
-u16 _ADC_VolatileFilter()
+//获取ADC测量值，滤波后的值
+static u16 _ADC_GetVal_By_Filter(u8 channel) compact
 {
-    u16 sum = 0;
-    u8 i, j;
-
-    //排序，冒泡排序
-    for (i = 0; i < TMP_ADC_LEN - 1; i++)
-    {
-        for (j = 0; j < TMP_ADC_LEN - 1 - i; j++)
-        {
-            if (tmp_adc[j] > tmp_adc[j + 1])
-            {
-                tmp_adc[j] = tmp_adc[j] ^ tmp_adc[j + 1];
-                tmp_adc[j + 1] = tmp_adc[j] ^ tmp_adc[j + 1];
-                tmp_adc[j] = tmp_adc[j] ^ tmp_adc[j + 1];
-            }
-        }
-    }
-    //去掉2个最小值和2个最大值，中间值求平均值
-    for (i = 2; i < TMP_ADC_LEN - 2; i++)
-        sum += tmp_adc[i];
-    return sum / (TMP_ADC_LEN - 4);
+    u8 i;
+    for (i = 0; i < TMP_ADC_LEN; i++)
+        tmp_adc[i] = _ADC_Read(channel);  //读ADC数值
+    return math_filter_median_average(tmp_adc, TMP_ADC_LEN);//滤波计算ADC值
 }
 
 
@@ -115,19 +107,25 @@ void INT0_ISR() interrupt 0 using 3
 */
 void BSP_POWER_Init(void) large
 {
+    u16 res;
+
     P3M1 |= 0x40;   //ADC高阻输入
     P3M0 &= ~0x40;
     P3M1 &= ~0x80;  //EN推挽输出
     P3M0 |= 0x80;
 
     V_EN = 0;
-
     BGV = (int idata *)0xEF;
 
     //ADC初始化
     ADCTIM = 0x3F;      //设置ADC内部时序
     ADCCFG = 0x2F;      //设置ADC结果右对齐，时钟为SYSclk/2/16
-    ADC_CONTR = 0x0E;   //使能ADC模块，并选择第14通道
+    ADC_CONTR = 0x80;   //打开ADC电源
+    delay_ms(1);        //延时1ms，等待ADC供电稳定
+
+    res = _ADC_GetVal_By_Filter(15);        //先利用15通道，测量出电源参考电压（单位mV）
+    vcc_ref = ADC_BIT * (*BGV * 1.0 / res); //这里要加括号，否则先计算*，中间数值会溢出
+    BSP_UART_Println(UART1, "[BSP_POWER_Init] ADC. *BGV=%u, res=%u, vcc_ref=%u", *BGV, res, vcc_ref);
 }
 
 /*
@@ -167,19 +165,17 @@ u16 BSP_POWER_GetVoltage() large
     u16 res, vol;
     u8 i;
 
-    // BSP_UART_Println(UART1, "*BGV=%u", *BGV);
     ADC_CONTR |= 0x80;      //打开ADC电源
     V_EN = 1;
 
-    for (i = 0; i < TMP_ADC_LEN; i++)
-        tmp_adc[i] = _ADC_Read();  //读ADC数值
-    res = _ADC_VolatileFilter();        //滤波计算ADC值
-
-    vol = (u16) ((res / 1024.0) * VCC_REF * 2); //(10位ADC无Vref)计算通道输入电压。单位(mV)
-    BSP_UART_Println(UART1, "vol=%u", vol);
+    delay_ms(1);
+    res = _ADC_GetVal_By_Filter(14);    //滤波计算ADC值
+    vol = (u16) ((res * 1.0 / ADC_BIT) * VCC_REF * 2); //(10位ADC无Vref)计算通道输入电压。单位(mV)
 
     ADC_CONTR &= ~0x80;     //关闭ADC电源
     V_EN = 0;
+
+    BSP_UART_Println(UART1, "vol=%u", vol);
 
     return vol;
 }

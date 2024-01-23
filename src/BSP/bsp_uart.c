@@ -249,7 +249,7 @@ void BSP_UART_SendString(UART_E_TYP uart, char *s) large
 * Argument(s) : uart - 串口枚举，参考 UART_E_TYP
 *               *format - 字符串地址
 *
-* Return(s)   : none.
+* Return(s)   : 测试可变参数数量超过7个，从第7个开始，format的结果都是0，前6个正常。debug看像是 vsprintf 的原因。
 *********************************************************************************************************
 */
 void BSP_UART_Println(UART_E_TYP uart, const char *format, ...) large
